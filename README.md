@@ -275,6 +275,10 @@ The header can also be changed using the `header` block (outlined in red). Heade
 
 This template shows messages from `django.contrib.messages` and is included in each of the main templates.
 
+### `_form_errors.html`
+
+This template displays a form field's errors. `field` should be passed in the context.
+
 ### `failed.html`
 
 This template is shown when the user's verification failed either from a timeout of the verification, maximum tries are exceeded, an API failure with Twilio, or other general error.
