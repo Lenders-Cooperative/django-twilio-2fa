@@ -273,8 +273,14 @@ class Twilio2FARegisterView(Twilio2FAMixin, FormView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        # FIXME: Take this out for prod
-        ctx["is_required"] = bool(int(self.request.GET.get("required", 1)))
+        ctx["is_optional"] = get_setting(
+            "REGISTER_OPTIONAL",
+            default=False
+        )
+        ctx["skip_href"] = get_setting(
+            "REGISTER_OPTIONAL_URL",
+            default="javascript:history.back()"
+        )
 
         return ctx
 

@@ -5,7 +5,7 @@
     <div class="row mb-4">
         <div class="col-12 text-center">
             <p>
-                For the safety and security of your account, we {% if is_required %}require{% else %}strongly encourage{% endif %} you to
+                For the safety and security of your account, we {% if is_optional %}strongly encourage{% else %}require{% endif %} you to
                 setup two-factor authentication. This allows us to verify your identity using your phone.
             </p>
             <p>
@@ -29,9 +29,9 @@
                     Continue
                 </button>
             </div>
-            {% if not is_required %}
+            {% if is_optional %}
             <div class="col-6">
-                <a href="#" class="btn btn-outline-secondary" style="width: 100%">
+                <a href="{{ skip_href }}" class="btn btn-outline-secondary" style="width: 100%">
                     Skip
                 </a>
             </div>
