@@ -99,23 +99,6 @@ class Twilio2FAMixin(object):
         else:
             self.allowed_methods = []
 
-        # FIXME: Take this out for prod
-        method = request.GET.get("set_method")
-        if method:
-            self.set_session_value(self.SESSION_METHOD, method)
-
-        # FIXME: Take this out for prod
-        phone = request.GET.get("set_phone")
-        if phone:
-            self.phone_number = phone
-
-        # FIXME: Take this out for prod
-        if bool(int(request.GET.get("add5m", 0))):
-            self.set_session_value(
-                self.SESSION_TIMESTAMP,
-                self.get_session_value(self.SESSION_TIMESTAMP) + timedelta(minutes=5)
-            )
-
     def dispatch(self, request, *args, **kwargs):
         view_name = request.resolver_match.view_name.replace(self.URL_PREFIX, "")
 
