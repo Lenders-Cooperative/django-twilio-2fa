@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 
 environ.Env.read_env(
-    BASE_DIR / ".env"
+    BASE_DIR / "test_app" / ".env"
 )
 
 
@@ -129,6 +129,10 @@ USE_TZ = True
 STATIC_URL = "/static/"
 
 # DJANGO-TWILIO-2FA
+
+TWILIO_2FA_ACCOUNT_SID = env("TWILIO_2FA_ACCOUNT_SID")
+TWILIO_2FA_AUTH_TOKEN = env("TWILIO_2FA_AUTH_TOKEN")
+TWILIO_2FA_SERVICE_ID = env("TWILIO_2FA_SERVICE_ID")
 
 TWILIO_2FA_ALLOWED_METHODS = None
 
