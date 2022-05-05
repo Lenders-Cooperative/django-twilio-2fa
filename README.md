@@ -121,6 +121,42 @@ Available methods: `sms`, `call`, and `whatsapp`. _Note: `email` is currently no
 
 If this setting is `None` or not set, all available methods will be presented to the end user.
 
+### `PHONE_NUMBER_DEFAULT_REGION`
+
+The default region for [`phonenumbers`](https://github.com/daviddrysdale/python-phonenumbers) library. Typically, this is the country code, but the entire list can be found [here](https://github.com/daviddrysdale/python-phonenumbers/tree/dev/python/phonenumbers/data).
+
+Setting this allows users to not need to enter a country code with their phone number. 
+
+You can set this to `None` to not have a default region. 
+
+Defaults to `US` for the United States.
+
+### `PHONE_NUMBER_ALLOWED_COUNTRIES`
+
+A list of country codes from which phone numbers are allowed to originate.
+
+Defaults to `["US"]`.
+
+### `PHONE_NUMBER_DISALLOWED_COUNTRIES`
+
+A list of country codes from which phone numbers *are not* allowed to originate. This can be used in conjunction with `PHONE_NUMBER_ALLOWED_COUNTRIES`.
+
+Defaults to `[]`.
+
+### `PHONE_NUMBER_CARRIER_LOOKUP`
+
+Indicates whether the carrier information lookup should be performed via Twilio. *(Note: carrier lookups may affect billing.)*
+
+Defaults to `True`.
+
+### `PHONE_NUMBER_ALLOWED_CARRIER_TYPES`
+
+A list of allowed carrier types.
+
+Available types: `voip`, `landline`, and `mobile`.
+
+Defaults to `["mobile"]`.
+
 ### `OBFUSCATE`
 
 Indicates whether the phone number presented in the views should be obfuscated (`(123) 456-7890` vs `(XXX) XXX-7890`).

@@ -17,9 +17,10 @@
     <form class="form" method="post">
         <div class="row mb-4">
             <div class="col-12 m-auto">
-                <div class="form-floating">
+                <div class="form-floating has-validation">
                     {% render_field form.phone_number class+="form-control" placeholder="Placeholder" %}
                     <label for="phone_number">Enter your phone number</label>
+                    {% include "twilio_2fa/_form_errors.html" with field=form.phone_number %}
                 </div>
             </div>
         </div>

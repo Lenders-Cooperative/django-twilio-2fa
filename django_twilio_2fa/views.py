@@ -188,7 +188,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
 
     def formatted_phone_number(self):
         return phonenumbers.format_number(
-            phonenumbers.parse(self.phone_number),
+            parse_phone_number(self.phone_number),
             phonenumbers.PhoneNumberFormat.NATIONAL
         )
 
@@ -203,7 +203,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
 
         n = ""
 
-        phone_number = phonenumbers.parse(self.phone_number)
+        phone_number = parse_phone_number(self.phone_number)
         phone_number = phonenumbers.format_number(
             phone_number,
             phonenumbers.PhoneNumberFormat.NATIONAL
@@ -271,13 +271,7 @@ class Twilio2FARegisterView(Twilio2FAMixin, FormView):
         return ctx
 
     def form_valid(self, form):
-        data = form.cleaned_data
-
-        phone_number = "+1" + data["phone_number"]
-        verify_phone_number(
-            phone_number,
-            do_lookup=True
-        )
+        phone_number = form.cleaned_data.get("phone_number")
 
         # This callback should return True or an error message
         updated = get_setting(

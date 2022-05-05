@@ -147,6 +147,8 @@ def twilio_2fa_register_cb(user, phone_number):
     user.profile.phone_number = phone_number
     user.profile.save()
 
+    return True
+
 TWILIO_2FA_REGISTER_CB = twilio_2fa_register_cb
 
 def twilio_2fa_phone_number(user=None):
