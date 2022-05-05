@@ -16,10 +16,12 @@
                     <div class="card-body my-4">
                         <div class="row mb-4">
                             <div class="col-12 text-center">
-                                <i class="fas fa-shield-alt fa-3x"></i>
+                                {% block header %}
+                                <i class="{% block header_icon_class %}fas fa-shield-alt{% endblock %} fa-3x"></i>
                                 <div class="fs-3 mt-3">
-                                    Two-Factor Authentication
+                                    {% block header_text %}Two-Factor Authentication{% endblock %}
                                 </div>
+                                {% endblock %}
                             </div>
                         </div>
                         {% with WIDGET_ERROR_CLASS="is-invalid" %}
