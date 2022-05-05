@@ -158,3 +158,5 @@ def twilio_2fa_phone_number(user=None):
     return None
 
 TWILIO_2FA_PHONE_NUMBER_CB = twilio_2fa_phone_number
+
+TWILIO_2FA_ALLOW_CHANGE = False

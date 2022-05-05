@@ -17,6 +17,11 @@ urlpatterns = [
         name="register"
     ),
     path(
+        "change",
+        Twilio2FAChangeView.as_view(),
+        name="change"
+    ),
+    path(
         "start",
         Twilio2FAStartView.as_view(),
         name="start"

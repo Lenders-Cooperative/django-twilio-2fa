@@ -49,6 +49,14 @@ Template for this view: `register.html`
 |----------------------------------------------------------------|----------------------------------------------------------------|
 | `REGISTER_OPTIONAL` is `False`                                 | `REGISTER_OPTIONAL` is `True`                                  |
 
+### Change
+
+If the user has already registered and wants to change their phone number, this view is shown. 
+
+It is the exact same view as register except `is_optional` is always `False`.
+
+Template for this view: `change.html`
+
 ### Start
 
 The user selects a verification method.
@@ -211,6 +219,12 @@ Arguments sent if callable:
 
 Defaults to `None` (no override).
 
+### `ALLOW_CHANGE`
+
+Indicates if a user can change the phone number associated with their 2FA.
+
+Defaults to `True`.
+
 ### `REGISTER_CB`
 
 This callback is triggered when the user registers their phone number and should be used to update the user.
@@ -285,11 +299,23 @@ This template is shown when the user's verification failed either from a timeout
 
 It conditionally allows users to retry verification based on the `can_retry` session variable.
 
+### `registration_form.html`
+
+This template shows the registration form to the user and serves as the base template for `register.html` and `change.html`. 
+
 ### `register.html`
 
 This template shows the registration form to the user.
 
 If `ALLOW_REGISTRATION` is `False`, the user is not shown this view and will be redirected to the failure page if no phone number is returned by `PHONE_NUMBER_CB`.
+
+It is based on `registration_form.html`.
+
+### `change.html`
+
+This template shows the change form to the user.
+
+It is based on `registration_form.html`.
 
 ### `start.html`
 

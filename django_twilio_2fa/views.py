@@ -15,7 +15,7 @@ from .dispatch import *
 
 
 __all__ = [
-    "Twilio2FAIndexView", "Twilio2FARegisterView", "Twilio2FAStartView", "Twilio2FAVerifyView", "Twilio2FASuccessView",
+    "Twilio2FAIndexView", "Twilio2FARegisterView", "Twilio2FAChangeView", "Twilio2FAStartView", "Twilio2FAVerifyView", "Twilio2FASuccessView",
     "Twilio2FAFailedView",
 ]
 
@@ -251,7 +251,7 @@ class Twilio2FAIndexView(Twilio2FAMixin, TemplateView):
         return self.get(request, *args, **kwargs)
 
 
-class Twilio2FARegisterView(Twilio2FAMixin, FormView):
+class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
     form_class = Twilio2FARegistrationForm
     success_url = reverse_lazy("twilio_2fa:start")
     template_name = "twilio_2fa/register.html"
@@ -292,6 +292,47 @@ class Twilio2FARegisterView(Twilio2FAMixin, FormView):
             )
 
         return super().form_valid(form)
+
+
+class Twilio2FARegisterView(Twilio2FARegistrationFormView):
+    template_name = "twilio_2fa/register.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        ctx["is_optional"] = get_setting(
+            "REGISTER_OPTIONAL",
+            default=False
+        )
+        ctx["skip_href"] = get_setting(
+            "REGISTER_OPTIONAL_URL",
+            default="javascript:history.back()"
+        )
+
+        return ctx
+
+
+class Twilio2FAChangeView(Twilio2FARegistrationFormView):
+    template_name = "twilio_2fa/change.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        ctx["is_optional"] = False
+        ctx["skip_href"] = None
+
+        ctx["can_change"] = get_setting(
+            "ALLOW_CHANGE",
+            default=True
+        )
+
+        if not ctx["can_change"]:
+            messages.error(
+                self.request,
+                "You are not allowed to make changes to your phone number."
+            )
+
+        return ctx
 
 
 class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
