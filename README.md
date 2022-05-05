@@ -33,6 +33,64 @@ urlpatterns = [
 ]
 ```
 
+## Flow
+
+### Register
+
+If the user has not registered for 2FA and `ALLOW_REGISTER` is `True`, the user will be shown this screen to add a phone number to their account.
+
+If `ALLOW_REGISTER` is `False` and no phone number is available, the user is redirected to the failed view.
+
+If `REGISTER_OPTIONAL` is `True`, the user has the ability to skip 2FA registration. See that setting for more details.
+
+Template for this view: `register.html`
+
+| <img src="docs/assets/view-register-required.png" width="50%"> | <img src="docs/assets/view-register-optional.png" width="50%"> |
+|----------------------------------------------------------------|----------------------------------------------------------------|
+| `REGISTER_OPTIONAL` is `False`                                 | `REGISTER_OPTIONAL` is `True`                                  |
+
+### Start
+
+The user selects a verification method.
+
+If only one method is allowed, the verification will be created using that method and user would be redirected to the Verify view. (The user would not see this screen.)
+
+Template for this view: `start.html`
+
+<img src="docs/assets/view-start.png" width="50%">
+
+### Verify
+
+Once the verification has been sent, the user will enter the code on this view. The copy changes based on what method was used.
+
+An incorrect code will show an error message and allow the user to retry up to a total of 5 attempts. 
+
+If the user exhausts all attempts, the user will be redirected to the Failed view.
+
+If the user has not received the verification, they can click on the "Haven't received the <>?" link. If it has been more than the specified time, the verification will be recreated. (See `RETRY_TIME`.)
+
+Template for this view: `verify.html`
+
+<img src="docs/assets/view-verify.png" width="50%">
+
+### Success
+
+If no `VERIFY_SUCCESS_URL` is defined, the user is redirected to this view upon a successful verification.
+
+Template for this view: `success.html`
+
+### Failed
+
+In case of a verification failure, the user is redirected to this view.
+
+Depending on `RETRY, the user will be able to 
+
+Template for this view: `failed.html`
+
+| <img src="docs/assets/view-failed-retry.png" width="50%"> | <img src="docs/assets/view-failed-noretry.png" width="50%"> |
+|-----------------------------------------------------------|-------------------------------------------------------------|
+| User can retry verification                               | User cannot retry verification                              |
+
 ## Settings
 
 All settings are prefixed with `TWILIO_2FA_`.
@@ -70,6 +128,20 @@ Indicates whether users should be allowed to register their phone number if one 
 If this is `False` and the user has no phone number, they will not be able to use 2FA.
 
 Defaults to `True`.
+
+### `REGISTER_OPTIONAL`
+
+Indicates whether user registration can be skipped by a user. 
+
+If `True` and the user clicks the Skip button, the user will be redirected to `REGISTER_OPTIONAL_URL`.
+
+Defaults to `False`.
+
+### `REGISTER_OPTIONAL_URL`
+
+URL to redirect user when skipping registration.
+
+Defaults to `javascript:history.back()`.
 
 ### `RETRY_TIME`
 
@@ -147,11 +219,15 @@ Arguments sent with this signal:
 
 The presentation code uses [Bootstrap 5](https://getbootstrap.com/docs/5.1/), [Font Awesome 5](https://fontawesome.com/v5/search), and [django-widget-tweaks](https://github.com/jazzband/django-widget-tweaks). None are an absolute requirement and can be removed using custom templates or, in the case of Font Awesome, defining the `METHOD_DISPLAY_CB` setting.
 
+<img src="docs/assets/customization-diagram.png" width="50%">
+
 ### `_base.html`
 
 This is the primary template that all main templates extends.
 
-It defines a single block for content: `content`. For `django_widget_tweaks`, the `content` block is wrapped by `WIDGET_ERROR_CLASS`. 
+It defines a single block for content: `content` (outlined in yellow above). For `django_widget_tweaks`, the `content` block is wrapped by `WIDGET_ERROR_CLASS`.
+
+The header can also be changed using the `header` block (outlined in red). Header icon classes changed using the `header_icon_class` block (outlined in blue) and text changed using the `header_text` block (outlined in green). 
 
 ### `_messages.html`
 
