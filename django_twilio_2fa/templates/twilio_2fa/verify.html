@@ -6,7 +6,11 @@
         <div class="row mb-3">
             <div class="col-12 text-center">
                     Please enter the token we
-                    {% if method == "sms" %}text to you{% elif method == "call" %}called you with{% else %}sent to you{% endif %}
+                    {% if method == "sms" %}text to you
+                    {% elif method == "call" %}called you with
+                    {% elif method == "email" %}e-mailed to you
+                    {% elif method == "whatsapp" %}sent to you in WhatsApp
+                    {% else %}sent to you{% endif %}
                     at <strong>{{ obfuscated_phone_number }}</strong> in the field below.
             </div>
         </div>
@@ -35,7 +39,12 @@
         <div class="row">
             <div class="col-12 text-center small text-muted">
                 <a href="{% url 'twilio_2fa:start' %}?action=retry" class="text-reset">
-                    Haven't received the {% if method == "sms" %}text{% elif method == "call" %}call{% else %}code{% endif %}?
+                    Haven't received the
+                    {% if method == "sms" %}text
+                    {% elif method == "call" %}call
+                    {% elif method == "whatsapp" %}message
+                    {% elif method == "email" %}e-mail
+                    {% else %}code{% endif %}?
                 </a>
             </div>
         </div>
