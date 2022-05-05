@@ -210,9 +210,12 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         )
 
     def obfuscate_phone_number(self):
-        # FIXME: Take this out for prod
-        no_obfuscation = bool(int(self.request.GET.get("no_obfuscation", 0)))
-        if no_obfuscation:
+        obfuscate_number = get_setting(
+            "OBFUSCATE",
+            default=True
+        )
+
+        if not obfuscate_number:
             return self.formatted_phone_number()
 
         n = ""
@@ -317,14 +320,6 @@ class Twilio2FARegisterView(Twilio2FAMixin, FormView):
 class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
     success_url = reverse_lazy("twilio_2fa:verify")
     template_name = "twilio_2fa/start.html"
-
-    def setup(self, request, *args, **kwargs):
-        super().setup(request, *args, **kwargs)
-
-        # FIXME: Remove for prod
-        allowed_methods = request.GET.get("allowed_methods", "")
-        if allowed_methods != "":
-            self.allowed_methods = allowed_methods.split(",")
 
     def dispatch(self, request, *args, **kwargs):
         action = request.GET.get("action")

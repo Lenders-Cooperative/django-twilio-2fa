@@ -121,6 +121,12 @@ Available methods: `sms`, `call`, and `whatsapp`. _Note: `email` is currently no
 
 If this setting is `None` or not set, all available methods will be presented to the end user.
 
+### `OBFUSCATE`
+
+Indicates whether the phone number presented in the views should be obfuscated (`(123) 456-7890` vs `(XXX) XXX-7890`).
+
+Defaults to `True`.
+
 ### `ALLOW_REGISTER`
 
 Indicates whether users should be allowed to register their phone number if one does not already exist. 
