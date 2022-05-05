@@ -1,0 +1,15 @@
+certifi==2021.10.8
+charset-normalizer==2.0.12
+Django==2.2.9
+django-environ==0.8.1
+# Editable install with no version control (django-twilio-2fa==0.1)
+-e /Users/loganbibby/Development/django-twilio-2fa
+django-widget-tweaks==1.4.12
+idna==3.3
+phonenumbers==8.12.47
+PyJWT==2.3.0
+pytz==2022.1
+requests==2.27.1
+sqlparse==0.4.2
+twilio==7.8.2
+urllib3==1.26.9

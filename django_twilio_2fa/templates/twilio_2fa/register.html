@@ -1,0 +1,42 @@
+{% extends "twilio_2fa/_base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <p>
+                For the safety and security of your account, we {% if is_required %}require{% else %}strongly encourage{% endif %} you to
+                setup two-factor authentication. This allows us to verify your identity using your phone.
+            </p>
+            <p>
+                To start setting up two-factor authentication, enter your phone number below and we will verify it now.
+            </p>
+        </div>
+    </div>
+    {% include "twilio_2fa/_messages.html" %}
+    <form class="form" method="post">
+        <div class="row mb-4">
+            <div class="col-12 m-auto">
+                <div class="form-floating">
+                    {% render_field form.phone_number class+="form-control" placeholder="Placeholder" %}
+                    <label for="phone_number">Enter your phone number</label>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div class="col-6 m-auto">
+                <button type="submit" class="btn btn-outline-primary" style="width: 100%">
+                    Continue
+                </button>
+            </div>
+            {% if not is_required %}
+            <div class="col-6">
+                <a href="#" class="btn btn-outline-secondary" style="width: 100%">
+                    Skip
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% csrf_token %}
+    </form>
+{% endblock %}
