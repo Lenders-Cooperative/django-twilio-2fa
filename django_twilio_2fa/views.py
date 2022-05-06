@@ -120,6 +120,7 @@ class Twilio2FAMixin(object):
         ctx = super().get_context_data(**kwargs)
 
         ctx["is_debug"] = settings.DEBUG
+        ctx["is_verification"] = False
 
         return ctx
 
@@ -167,6 +168,11 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
             }
         )
 
+        try:
+            self.phone_number = parse_phone_number(self.phone_number)
+        except ValidationError:
+            self.phone_number = None
+
     def dispatch(self, request, *args, **kwargs):
         if not self.phone_number:
             messages.warning(
@@ -180,15 +186,22 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["phone_number"] = self.phone_number
+        ctx["is_verification"] = True
+        ctx["phone_number"] = self.e164_phone_number()
         ctx["formatted_phone_number"] = self.formatted_phone_number()
         ctx["obfuscated_phone_number"] = self.obfuscate_phone_number()
 
         return ctx
 
+    def e164_phone_number(self):
+        return phonenumbers.format_number(
+            self.phone_number,
+            phonenumbers.PhoneNumberFormat.E164
+        )
+
     def formatted_phone_number(self):
         return phonenumbers.format_number(
-            parse_phone_number(self.phone_number),
+            self.phone_number,
             phonenumbers.PhoneNumberFormat.NATIONAL
         )
 
@@ -203,9 +216,8 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
 
         n = ""
 
-        phone_number = parse_phone_number(self.phone_number)
         phone_number = phonenumbers.format_number(
-            phone_number,
+            self.phone_number,
             phonenumbers.PhoneNumberFormat.NATIONAL
         )
 
@@ -215,7 +227,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
             else:
                 n += c
 
-        return n[:-4] + self.phone_number[-4:]
+        return n[:-4] + self.e164_phone_number()[-4:]
 
     def update_verification_status(self, status):
         twilio_sid = self.get_session_value(self.SESSION_SID)
@@ -430,7 +442,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
                 .services(get_setting("SERVICE_ID"))
                 .verifications
                 .create(
-                    to=self.phone_number,
+                    to=self.e164_phone_number(),
                     channel=method,
                     custom_friendly_name=get_setting(
                         "SERVICE_NAME",
@@ -494,7 +506,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
                 .services(get_setting("SERVICE_ID"))
                 .verification_checks
                 .create(
-                    to=self.phone_number,
+                    to=self.e164_phone_number(),
                     code=form.cleaned_data.get("token")
                 )
             )
