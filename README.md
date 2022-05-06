@@ -6,7 +6,7 @@
 * [Twilio](https://twilio.com) account
 * `django` 2.29+
 * `twilio` 7.8.2+
-* `phonenumbers` 8.12.47+
+* `phonenumbers` 8.12.26+
 
 ## Installation
 
@@ -275,6 +275,8 @@ Arguments sent with this signal:
 
 The presentation code uses [Bootstrap 5](https://getbootstrap.com/docs/5.1/), [Font Awesome 5](https://fontawesome.com/v5/search), and [django-widget-tweaks](https://github.com/jazzband/django-widget-tweaks). None are an absolute requirement and can be removed using custom templates or, in the case of Font Awesome, defining the `METHOD_DISPLAY_CB` setting.
 
+All templates are in the `twilio_2fa` directory. To override these templates, you can put your version in your own `twilio_2fa` directory anywhere your templates are stored.
+
 <img src="docs/assets/customization-diagram.png" width="50%">
 
 ### `_base.html`
@@ -346,3 +348,7 @@ Perform the following steps in the `test_app` directory:
 6. Run the server: `python manage.py runserver`.
 
 The test app should now be available at http://localtest.me:8000.
+
+### To-Do
+
+* Internationalization
