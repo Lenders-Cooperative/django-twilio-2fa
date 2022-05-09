@@ -65,7 +65,6 @@ class Twilio2FAMixin(object):
 
         allowed_methods = get_setting(
             "ALLOWED_METHODS",
-            default=[],
             callback_kwargs={
                 "user": request.user
             }
@@ -194,18 +193,27 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         return ctx
 
     def e164_phone_number(self):
+        if not self.phone_number:
+            return None
+
         return phonenumbers.format_number(
             self.phone_number,
             phonenumbers.PhoneNumberFormat.E164
         )
 
     def formatted_phone_number(self):
+        if not self.phone_number:
+            return None
+
         return phonenumbers.format_number(
             self.phone_number,
             phonenumbers.PhoneNumberFormat.NATIONAL
         )
 
     def obfuscate_phone_number(self):
+        if not self.phone_number:
+            return None
+
         obfuscate_number = get_setting(
             "OBFUSCATE",
             default=True
@@ -354,12 +362,14 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
     def dispatch(self, request, *args, **kwargs):
         action = request.GET.get("action")
 
-        if action:
-            if action == "retry":
-                r = self.retry_action(request, *args, **kwargs)
+        if not self.phone_number:
+            return self.get_redirect("start")
 
-                if r is not None:
-                    return r
+        elif action and action == "retry":
+            r = self.retry_action(request, *args, **kwargs)
+
+            if r is not None:
+                return r
 
         elif request.method == "GET" and len(self.allowed_methods) == 1:
             # If only one option exists, we start the verification and send the user on
