@@ -37,6 +37,11 @@ class Require2faMiddleware(object):
             return
 
         if self.is_2fa_required(request) and self.has_2fa_expired(request):
+            next_url = reverse(
+                request.resolver_match.view_name,
+                kwargs=view_kwargs,
+                args=view_args
+            )
             return HttpResponseRedirect(
-                reverse(f"{URL_PREFIX}start")
+                f"{reverse(f'{URL_PREFIX}:start')}?next={next_url}"
             )

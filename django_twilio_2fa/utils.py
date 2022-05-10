@@ -8,21 +8,22 @@ from twilio.base.exceptions import TwilioRestException
 
 __all__ = [
     "SETTING_PREFIX", "get_setting",
-    "SESSION_PREFIX", "SESSION_METHOD", "SESSION_TIMESTAMP", "SESSION_SID", "SESSION_CAN_RETRY",
+    "SESSION_PREFIX", "SESSION_METHOD", "SESSION_TIMESTAMP", "SESSION_SID", "SESSION_CAN_RETRY", "SESSION_NEXT_URL",
     "URL_PREFIX", "DATEFMT",
     "get_twilio_client", "verify_phone_number", "parse_phone_number",
 ]
 
 # Constants
 
-SETTING_PREFIX = "TWILIO_2FA_"
-SESSION_PREFIX = "twilio_2fa_"
-URL_PREFIX = "twilio_2fa:"
+SETTING_PREFIX = "TWILIO_2FA"
+SESSION_PREFIX = "twilio_2fa"
+URL_PREFIX = "twilio_2fa"
 
 SESSION_SID = "sid"
 SESSION_TIMESTAMP = "timestamp"
 SESSION_METHOD = "method"
 SESSION_CAN_RETRY = "can_retry"
+SESSION_NEXT_URL = "next_url"
 
 DATEFMT = "%Y%m%d%H%M%S"
 
@@ -31,7 +32,7 @@ def get_setting(name, default=None, callback_kwargs=None):
     name = name.upper()
 
     if not name.startswith(SETTING_PREFIX):
-        name = f"{SETTING_PREFIX}{name}"
+        name = f"{SETTING_PREFIX}_{name}"
 
     if not hasattr(settings, name):
         return default

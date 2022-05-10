@@ -15,8 +15,8 @@ from .dispatch import *
 
 
 __all__ = [
-    "Twilio2FAIndexView", "Twilio2FARegisterView", "Twilio2FAChangeView", "Twilio2FAStartView", "Twilio2FAVerifyView", "Twilio2FASuccessView",
-    "Twilio2FAFailedView",
+    "Twilio2FAIndexView", "Twilio2FARegisterView", "Twilio2FAChangeView", "Twilio2FAStartView", "Twilio2FAVerifyView",
+    "Twilio2FASuccessView", "Twilio2FAFailedView",
 ]
 
 
@@ -91,6 +91,13 @@ class Twilio2FAMixin(object):
         else:
             self.allowed_methods = []
 
+        if request.GET.get("next"):
+            self.set_session_value(
+                SESSION_NEXT_URL,
+                request.GET.get("next")
+            )
+
+
     def dispatch(self, request, *args, **kwargs):
         view_name = request.resolver_match.view_name.replace(URL_PREFIX, "")
 
@@ -119,7 +126,7 @@ class Twilio2FAMixin(object):
     def get_redirect(self, view_name, *args, **kwargs):
         logger.debug(f"Redirecting to: {view_name}")
         return HttpResponseRedirect(
-            reverse(f"{URL_PREFIX}{view_name}", args=args, kwargs=kwargs)
+            reverse(f"{URL_PREFIX}:{view_name}", args=args, kwargs=kwargs)
         )
 
     def get_error_redirect(self, can_retry=False):
@@ -493,12 +500,6 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
     success_url = reverse_lazy("twilio_2fa:success")
     template_name = "twilio_2fa/verify.html"
 
-    def get_success_url(self):
-        return get_setting(
-            "VERIFY_SUCCESS_URL",
-            default=super().get_success_url()
-        )
-
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
@@ -545,6 +546,27 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
 
 class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
     template_name = "twilio_2fa/success.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        next_url = self.get_session_value(
+            SESSION_NEXT_URL
+        )
+
+        if next_url:
+            return HttpResponseRedirect(
+                next_url
+            )
+
+        verify_success_url = get_setting(
+            "VERIFY_SUCCESS_URL"
+        )
+
+        if verify_success_url:
+            return HttpResponseRedirect(
+                verify_success_url
+            )
+
+        return super().dispatch(request, *args, **kwargs)
 
 
 class Twilio2FAFailedView(Twilio2FAMixin, TemplateView):

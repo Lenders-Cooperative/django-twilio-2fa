@@ -37,12 +37,13 @@
                     </div>
                     <div class="card-body">
                         <ul class="list-unstyled">
-                            <li><strong>User:</strong> {{ request.user }}</li>
+                            <li><strong>User:</strong> {{ request.user }} ({{ request.user.pk }})</li>
                             {% if is_verification %}
                             <li><strong>E164 Number:</strong> {{ phone_number }}</li>
                             <li><strong>Obfuscated Number:</strong> {{ obfuscated_phone_number }}</li>
                             <li><strong>Formatted Number:</strong> {{ formatted_phone_number }}</li>
                             {% endif %}
+                            <li><strong>Next URL:</strong> {{ request.session.twilio_2fa__next_url|default_if_none:"--" }}</li>
                         </ul>
                     </div>
                 </div>
