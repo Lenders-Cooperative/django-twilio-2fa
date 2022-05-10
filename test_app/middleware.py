@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django_twilio_2fa.utils import *
@@ -9,15 +9,13 @@ class Require2faMiddleware(object):
         self.get_response = get_response
 
     def has_2fa_expired(self, request):
-        timestamp = request.session.get("twilio_2fa_timestamp")
+        last_attempt = request.user.profile.last_2fa_attempt
 
-        if not timestamp:
+        if not last_attempt:
             return True
 
         try:
-            timestamp = datetime.strptime(timestamp, DATEFMT)
-
-            if datetime.now() > (timestamp + timedelta(minutes=30)):
+            if datetime.now(tz=last_attempt.tzinfo) > (last_attempt + timedelta(minutes=30)):
                 return True
 
         except ValueError:
@@ -32,14 +30,13 @@ class Require2faMiddleware(object):
         return False
 
     def __call__(self, request):
-        response = self.get_response(request)
+        return self.get_response(request)
 
-        if "static" in request.path or (request.resolver_match and request.resolver_match.app_name == URL_PREFIX):
-            return response
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        if "static" in request.path or (request.resolver_match and URL_PREFIX in request.resolver_match.view_name):
+            return
 
         if self.is_2fa_required(request) and self.has_2fa_expired(request):
             return HttpResponseRedirect(
-                reverse(f"{URL_PREFIX}:start")
+                reverse(f"{URL_PREFIX}start")
             )
-
-        return response
