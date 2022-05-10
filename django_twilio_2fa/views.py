@@ -97,7 +97,6 @@ class Twilio2FAMixin(object):
                 request.GET.get("next")
             )
 
-
     def dispatch(self, request, *args, **kwargs):
         view_name = request.resolver_match.view_name.replace(URL_PREFIX, "")
 
@@ -474,7 +473,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
             self.set_session_value(SESSION_TIMESTAMP, datetime.now().strftime(DATEFMT))
 
             twilio_2fa_verification_sent.send(
-                sender=self.__class__,
+                sender=None,
                 twilio_sid=self.get_session_value(SESSION_SID),
                 user=self.request.user,
                 phone_number=self.phone_number,

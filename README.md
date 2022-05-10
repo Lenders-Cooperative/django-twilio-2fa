@@ -284,6 +284,8 @@ Arguments sent with this signal:
 * `method`: Method name
 * `timestamp`: `DateTime` instance
 
+Sender will always be `None`.
+
 ### `verification_success`
 
 This signal is triggered when a user completes verification successfully.
