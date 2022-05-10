@@ -27,7 +27,7 @@ Add the project `urls.py`:
 urlpatterns = [
     ...
     path(
-        "2fa/",
+        "2fa/",  # Can be changed to any path
         include("django_twilio_2fa.urls")
     ),
 ]
@@ -35,11 +35,34 @@ urlpatterns = [
 
 ## Flow
 
+A user should only enter the 2FA flow if:
+* They need to register for 2FA
+* They have no previous 2FA authentication
+* Their previous 2FA authentication has expired and needs to be renewed
+
+Users should enter the flow through the Start view. If they are not registered for 2FA, they will be redirected to the Register view. Otherwise, it is assumed their 2FA authentication has expired.  
+
+How and when to enter into the flow is determined outside the scope of this project. However, there is sample middleware in `test_app/middleware.py` that can be used as a reference.
+
+### Start
+
+This is the primary entrypoint into the 2FA flow.
+
+If `PHONE_NUMBER_CB` returns `None` (indicating the user has not registered for 2FA), the user will be redirected to the Register view.
+
+If only one method is allowed, the verification will be created using that method and user would be redirected to the Verify view. (The user would not see this screen.)
+
+Otherwise, the user is presented with a choice of verification methods.
+
+Template for this view: `start.html`
+
+<img src="docs/assets/view-start.png" width="50%">
+
 ### Register
 
 If the user has not registered for 2FA and `ALLOW_REGISTER` is `True`, the user will be shown this screen to add a phone number to their account.
 
-If `ALLOW_REGISTER` is `False` and no phone number is available, the user is redirected to the failed view.
+If `ALLOW_REGISTER` is `False` and no phone number is available, the user is redirected to the Failed view.
 
 If `REGISTER_OPTIONAL` is `True`, the user has the ability to skip 2FA registration. See that setting for more details.
 
@@ -56,16 +79,6 @@ If the user has already registered and wants to change their phone number, this 
 It is the exact same view as register except `is_optional` is always `False`.
 
 Template for this view: `change.html`
-
-### Start
-
-The user selects a verification method.
-
-If only one method is allowed, the verification will be created using that method and user would be redirected to the Verify view. (The user would not see this screen.)
-
-Template for this view: `start.html`
-
-<img src="docs/assets/view-start.png" width="50%">
 
 ### Verify
 
