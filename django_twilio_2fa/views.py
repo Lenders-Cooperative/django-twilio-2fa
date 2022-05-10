@@ -27,7 +27,7 @@ class Twilio2FAMixin(object):
     # Session values that should be cleared
     SESSION_VALUES = [
         SESSION_SID, SESSION_TIMESTAMP, SESSION_METHOD,
-        SESSION_CAN_RETRY
+        SESSION_CAN_RETRY, SESSION_ATTEMPTS,
     ]
 
     AVAILABLE_METHODS = {
@@ -150,6 +150,11 @@ class Twilio2FAMixin(object):
     def set_session_value(self, key, value):
         key = f"{SESSION_PREFIX}_{key}"
         self.request.session[key] = value
+        return value
+
+    def clear_session(self):
+        for key in self.SESSION_VALUES:
+            del self.request.session[f"{SESSION_PREFIX}_{key}"]
 
 
 class Twilio2FAVerificationMixin(Twilio2FAMixin):
@@ -173,6 +178,18 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
             self.phone_number = None
 
     def dispatch(self, request, *args, **kwargs):
+        timeout_value = self.get_session_value(SESSION_TIMEOUT)
+
+        if timeout_value:
+            timeout_value = datetime.strptime(timeout_value, DATEFMT)
+
+            if timeout_value > datetime.now(tz=timeout_value.tzinfo):
+                messages.error(
+                    request,
+                    "You cannot make another 2FA verification attempt at this time."
+                )
+                return self.get_error_redirect(can_retry=False)
+
         if not self.phone_number:
             messages.warning(
                 request,
@@ -242,6 +259,15 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
 
         if not twilio_sid:
             return True
+
+        twilio_2fa_verification_status_changed.send(
+            None,
+            user=self.request.user,
+            phone_number=self.e164_phone_number(),
+            method=self.get_session_value(SESSION_METHOD),
+            twilio_sid=twilio_sid,
+            status=status
+        )
 
         try:
             (get_twilio_client().verify
@@ -371,7 +397,10 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
             if r is not None:
                 return r
 
-        elif request.method == "GET" and len(self.allowed_methods) == 1:
+        if request.method == "GET":
+            self.clear_session()
+
+        if request.method == "GET" and len(self.allowed_methods) == 1:
             # If only one option exists, we start the verification and send the user on
             self.send_verification(
                 self.allowed_methods[0]
@@ -506,6 +535,29 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
 
         return ctx
 
+    def handle_too_many_attempts(self):
+        self.cancel_verification()
+
+        timeout = get_setting(
+            "MAX_ATTEMPTS_TIMEOUT",
+            default=600
+        )
+
+        if timeout:
+            self.set_session_value(
+                SESSION_TIMEOUT,
+                datetime.strftime(datetime.now() + timedelta(seconds=int(timeout)), DATEFMT)
+            )
+
+        messages.error(
+            self.request,
+            "You have made too many attempts to verify."
+        )
+
+        return self.get_error_redirect(
+            can_retry=True if not timeout else False
+        )
+
     def form_valid(self, form):
         try:
             verify = (get_twilio_client().verify
@@ -519,25 +571,44 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
         except TwilioRestException as e:
             if e.code == 60202:
                 # Max tries
-                self.cancel_verification()
-
-                messages.error(
-                    self.request,
-                    "You have made too many attempts to verify."
-                )
-                return self.get_error_redirect(
-                    can_retry=True
-                )
+                return self.handle_too_many_attempts()
 
             return self.handle_twilio_exception(e)
 
+        max_attempts = int(get_setting(
+            "MAX_ATTEMPTS",
+            default=5,
+            callback_kwargs={
+                "user": self.request.user
+            }
+        ))
+
+        current_attempts = self.set_session_value(
+            SESSION_ATTEMPTS,
+            self.get_session_value(SESSION_ATTEMPTS, 0) + 1
+        )
+
+        if current_attempts >= max_attempts:
+            return self.handle_too_many_attempts()
+
         if verify.status == "approved":
+            # Send this signal manually
+            twilio_2fa_verification_status_changed.send(
+                None,
+                user=self.request.user,
+                phone_number=self.e164_phone_number(),
+                method=self.get_session_value(SESSION_METHOD),
+                twilio_sid=self.get_session_value(SESSION_SID),
+                status=verify.status
+            )
+
             twilio_2fa_verification_success.send(
                 None,
                 user=self.request.user,
                 phone_number=self.e164_phone_number(),
                 method=self.get_session_value(SESSION_METHOD)
             )
+
             return super().form_valid(form)
 
         messages.error(

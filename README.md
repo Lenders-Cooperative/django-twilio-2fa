@@ -238,6 +238,27 @@ Indicates if a user can change the phone number associated with their 2FA.
 
 Defaults to `True`.
 
+### `MAX_ATTEMPTS`
+
+The maximum number of attempts the user has to successfully verify.
+
+Arguments sent if callable:
+* `user`: User instance
+
+Defaults to `5`.
+
+### `MAX_ATTEMPTS_TIMEOUT`
+
+Amount of time (in seconds) before the user will be able to attempt another verification after a maximum attempts failure.
+
+A timed out user will be redirected to the Failure view.
+
+If this setting is `None`, `0` or `False`, there will be no timeout and the user will be able to immediately try again.
+
+*Note: This timeout uses the sessions. It would be advisable to put this logic into a middleware and set this value to None.*
+
+Defaults to `600` seconds or 10 minutes.
+
 ### `REGISTER_CB`
 
 This callback is triggered when the user registers their phone number and should be used to update the user.
@@ -280,7 +301,7 @@ This signal is triggered anytime a verification is sent.
 Arguments sent with this signal:
 * `twilio_sid`: The SID for this user's verification
 * `user`: The user instance
-* `phone_number`: Phone number
+* `phone_number`: Phone number as string in E164 format
 * `method`: Method name
 * `timestamp`: `DateTime` instance
 
@@ -292,8 +313,23 @@ This signal is triggered when a user completes verification successfully.
 
 Arguments sent with this signal:
 * `user`: The user instance
-* `phone_number`: Phone number
+* `phone_number`: Phone number as string in E164 format
 * `method`: Method used for verification
+
+Sender will always be `None`.
+
+### `verification_status_changed`
+
+This signal is triggered when the Twilio verification status is changed. 
+
+Options for `status`: `approved` and `canceled`.
+
+Arguments sent with this signal:
+* `user`: The user instance
+* `phone_number`: Phone number as string in E164 format
+* `method`: Method used for verification
+* `twilio_sid`: The SID for this user's verification
+* `status`: Status verification was changed to
 
 Sender will always be `None`.
 

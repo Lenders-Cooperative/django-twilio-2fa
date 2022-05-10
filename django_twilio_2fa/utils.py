@@ -9,6 +9,7 @@ from twilio.base.exceptions import TwilioRestException
 __all__ = [
     "SETTING_PREFIX", "get_setting",
     "SESSION_PREFIX", "SESSION_METHOD", "SESSION_TIMESTAMP", "SESSION_SID", "SESSION_CAN_RETRY", "SESSION_NEXT_URL",
+    "SESSION_TIMEOUT", "SESSION_ATTEMPTS",
     "URL_PREFIX", "DATEFMT",
     "get_twilio_client", "verify_phone_number", "parse_phone_number",
 ]
@@ -24,6 +25,8 @@ SESSION_TIMESTAMP = "timestamp"
 SESSION_METHOD = "method"
 SESSION_CAN_RETRY = "can_retry"
 SESSION_NEXT_URL = "next_url"
+SESSION_TIMEOUT = "timeout"
+SESSION_ATTEMPTS = "attempts"
 
 DATEFMT = "%Y%m%d%H%M%S"
 
