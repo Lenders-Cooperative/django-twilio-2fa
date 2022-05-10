@@ -10,7 +10,6 @@ import phonenumbers
 from twilio.base.exceptions import TwilioRestException
 from .forms import *
 from .utils import *
-from .conf import *
 from .dispatch import *
 
 
@@ -21,21 +20,11 @@ __all__ = [
 
 
 class Twilio2FAMixin(object):
-    SESSION_PREFIX = "twilio_2fa_"
-    URL_PREFIX = "twilio_2fa:"
-
-    SESSION_SID = "sid"
-    SESSION_TIMESTAMP = "timestamp"
-    SESSION_METHOD = "method"
-    SESSION_CAN_RETRY = "can_retry"
-
     # Session values that should be cleared
     SESSION_VALUES = [
         SESSION_SID, SESSION_TIMESTAMP, SESSION_METHOD,
         SESSION_CAN_RETRY
     ]
-
-    DATEFMT = "%Y%m%d%H%M%S"
 
     AVAILABLE_METHODS = {
         "sms": {
@@ -99,7 +88,7 @@ class Twilio2FAMixin(object):
             self.allowed_methods = []
 
     def dispatch(self, request, *args, **kwargs):
-        view_name = request.resolver_match.view_name.replace(self.URL_PREFIX, "")
+        view_name = request.resolver_match.view_name.replace(URL_PREFIX, "")
 
         if view_name in ["failed"]:
             # Always allow these views to be dispatched properly
@@ -125,11 +114,11 @@ class Twilio2FAMixin(object):
 
     def get_redirect(self, view_name, *args, **kwargs):
         return HttpResponseRedirect(
-            reverse(f"{self.URL_PREFIX}{view_name}", args=args, kwargs=kwargs)
+            reverse(f"{URL_PREFIX}{view_name}", args=args, kwargs=kwargs)
         )
 
     def get_error_redirect(self, can_retry=False):
-        self.set_session_value(self.SESSION_CAN_RETRY, can_retry)
+        self.set_session_value(SESSION_CAN_RETRY, can_retry)
         return self.get_redirect("failed")
 
     def handle_twilio_exception(self, exc):
@@ -144,11 +133,11 @@ class Twilio2FAMixin(object):
         raise
 
     def get_session_value(self, key, default=None):
-        key = f"{self.SESSION_PREFIX}_{key}"
+        key = f"{SESSION_PREFIX}_{key}"
         return self.request.session.get(key, default)
 
     def set_session_value(self, key, value):
-        key = f"{self.SESSION_PREFIX}_{key}"
+        key = f"{SESSION_PREFIX}_{key}"
         self.request.session[key] = value
 
 
@@ -238,7 +227,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         return n[:-4] + self.e164_phone_number()[-4:]
 
     def update_verification_status(self, status):
-        twilio_sid = self.get_session_value(self.SESSION_SID)
+        twilio_sid = self.get_session_value(SESSION_SID)
 
         if not twilio_sid:
             return True
@@ -363,7 +352,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         action = request.GET.get("action")
 
         if not self.phone_number:
-            return self.get_redirect("start")
+            return self.get_redirect("register")
 
         elif action and action == "retry":
             r = self.retry_action(request, *args, **kwargs)
@@ -391,7 +380,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         return ctx
 
     def retry_action(self, request, *args, **kwargs):
-        elapsed = datetime.now() - datetime.strptime(self.get_session_value(self.SESSION_TIMESTAMP), self.DATEFMT)
+        elapsed = datetime.now() - datetime.strptime(self.get_session_value(SESSION_TIMESTAMP), DATEFMT)
 
         min_retry_wait = get_setting(
             "RETRY_TIME",
@@ -405,7 +394,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
             )
             return self.get_redirect("verify")
 
-        method = self.get_session_value(self.SESSION_METHOD)
+        method = self.get_session_value(SESSION_METHOD)
 
         self.cancel_verification()
 
@@ -466,17 +455,17 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
                 )
             )
 
-            self.set_session_value(self.SESSION_SID, verification.sid)
-            self.set_session_value(self.SESSION_METHOD, method)
-            self.set_session_value(self.SESSION_TIMESTAMP, datetime.now().strftime(self.DATEFMT))
+            self.set_session_value(SESSION_SID, verification.sid)
+            self.set_session_value(SESSION_METHOD, method)
+            self.set_session_value(SESSION_TIMESTAMP, datetime.now().strftime(DATEFMT))
 
             twilio_2fa_verification_sent.send(
                 sender=self.__class__,
-                twilio_sid=self.get_session_value(self.SESSION_SID),
+                twilio_sid=self.get_session_value(SESSION_SID),
                 user=self.request.user,
                 phone_number=self.phone_number,
-                method=self.get_session_value(self.SESSION_METHOD),
-                timestamp=self.get_session_value(self.SESSION_TIMESTAMP)
+                method=self.get_session_value(SESSION_METHOD),
+                timestamp=self.get_session_value(SESSION_TIMESTAMP)
             )
 
             return verification.sid
@@ -506,7 +495,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["method"] = self.get_session_value(self.SESSION_METHOD)
+        ctx["method"] = self.get_session_value(SESSION_METHOD)
 
         return ctx
 
@@ -557,7 +546,7 @@ class Twilio2FAFailedView(Twilio2FAMixin, TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["can_retry"] = self.get_session_value(self.SESSION_CAN_RETRY, False)
+        ctx["can_retry"] = self.get_session_value(SESSION_CAN_RETRY, False)
 
         if settings.DEBUG and "retry" in self.request.GET:
             ctx["can_retry"] = bool(int(self.request.GET.get("retry", 0)))

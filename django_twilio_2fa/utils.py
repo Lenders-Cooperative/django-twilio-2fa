@@ -4,12 +4,51 @@ import phonenumbers
 from phonenumbers.phonenumberutil import NumberParseException
 from twilio.rest import Client as TwilioClient
 from twilio.base.exceptions import TwilioRestException
-from .conf import *
 
 
 __all__ = [
+    "SETTING_PREFIX", "get_setting",
+    "SESSION_PREFIX", "SESSION_METHOD", "SESSION_TIMESTAMP", "SESSION_SID", "SESSION_CAN_RETRY",
+    "URL_PREFIX", "DATEFMT",
     "get_twilio_client", "verify_phone_number", "parse_phone_number",
 ]
+
+# Constants
+
+SETTING_PREFIX = "TWILIO_2FA_"
+SESSION_PREFIX = "twilio_2fa_"
+URL_PREFIX = "twilio_2fa:"
+
+SESSION_SID = "sid"
+SESSION_TIMESTAMP = "timestamp"
+SESSION_METHOD = "method"
+SESSION_CAN_RETRY = "can_retry"
+
+DATEFMT = "%Y%m%d%H%M%S"
+
+
+def get_setting(name, default=None, callback_kwargs=None):
+    name = name.upper()
+
+    if not name.startswith(SETTING_PREFIX):
+        name = f"{SETTING_PREFIX}{name}"
+
+    if not hasattr(settings, name):
+        return default
+
+    value = getattr(settings, name)
+
+    must_be_callable = True if name.endswith("_CB") else False
+
+    if callable(value):
+        if not callback_kwargs:
+            callback_kwargs = {}
+
+        return value(**callback_kwargs)
+    elif must_be_callable and not callable(value):
+        raise ValueError(f"Setting {name} must be callable")
+
+    return value
 
 
 default_region = get_setting(
