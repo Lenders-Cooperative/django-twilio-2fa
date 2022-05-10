@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.shortcuts import render
@@ -17,6 +18,9 @@ __all__ = [
     "Twilio2FAIndexView", "Twilio2FARegisterView", "Twilio2FAChangeView", "Twilio2FAStartView", "Twilio2FAVerifyView", "Twilio2FASuccessView",
     "Twilio2FAFailedView",
 ]
+
+
+logger = logging.getLogger("django_twilio_2fa")
 
 
 class Twilio2FAMixin(object):
@@ -113,6 +117,7 @@ class Twilio2FAMixin(object):
         return ctx
 
     def get_redirect(self, view_name, *args, **kwargs):
+        logger.debug(f"Redirecting to: {view_name}")
         return HttpResponseRedirect(
             reverse(f"{URL_PREFIX}{view_name}", args=args, kwargs=kwargs)
         )
@@ -369,6 +374,8 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
             return HttpResponseRedirect(
                 self.success_url
             )
+
+        logger.debug("Start dispatch")
 
         return super().dispatch(request, *args, **kwargs)
 
