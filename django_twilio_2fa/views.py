@@ -154,7 +154,11 @@ class Twilio2FAMixin(object):
 
     def clear_session(self):
         for key in self.SESSION_VALUES:
-            del self.request.session[f"{SESSION_PREFIX}_{key}"]
+            key_ = f"{SESSION_PREFIX}_{key}"
+            if key not in self.request.session:
+                continue
+
+            del self.request.session[key_]
 
 
 class Twilio2FAVerificationMixin(Twilio2FAMixin):
