@@ -533,7 +533,12 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
             return self.handle_twilio_exception(e)
 
         if verify.status == "approved":
-            # TODO: Add signal here
+            twilio_2fa_verification_success.send(
+                None,
+                user=self.request.user,
+                phone_number=self.e164_phone_number(),
+                method=self.get_session_value(SESSION_METHOD)
+            )
             return super().form_valid(form)
 
         messages.error(

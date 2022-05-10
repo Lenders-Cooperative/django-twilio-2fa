@@ -284,6 +284,17 @@ Arguments sent with this signal:
 * `method`: Method name
 * `timestamp`: `DateTime` instance
 
+### `verification_success`
+
+This signal is triggered when a user completes verification successfully.
+
+Arguments sent with this signal:
+* `user`: The user instance
+* `phone_number`: Phone number
+* `method`: Method used for verification
+
+Sender will always be `None`.
+
 ## Customization
 
 The presentation code uses [Bootstrap 5](https://getbootstrap.com/docs/5.1/), [Font Awesome 5](https://fontawesome.com/v5/search), and [django-widget-tweaks](https://github.com/jazzband/django-widget-tweaks). None are an absolute requirement and can be removed using custom templates or, in the case of Font Awesome, defining the `METHOD_DISPLAY_CB` setting.
