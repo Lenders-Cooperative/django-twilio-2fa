@@ -98,7 +98,7 @@ class Twilio2FAMixin(object):
             )
 
     def dispatch(self, request, *args, **kwargs):
-        view_name = request.resolver_match.view_name.replace(URL_PREFIX, "")
+        view_name = request.resolver_match.view_name.replace(URL_PREFIX + ":", "")
 
         if view_name in ["failed"]:
             # Always allow these views to be dispatched properly
