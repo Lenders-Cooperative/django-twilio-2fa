@@ -193,6 +193,8 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
                     "You cannot make another 2FA verification attempt at this time."
                 )
                 return self.get_error_redirect(can_retry=False)
+            else:
+                self.clear_session()
 
         if not self.phone_number:
             messages.warning(
