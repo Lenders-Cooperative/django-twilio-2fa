@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.shortcuts import render
+from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 from django.views.generic import FormView, TemplateView
 from django.urls import reverse_lazy, reverse
@@ -106,7 +107,7 @@ class Twilio2FAMixin(object):
         elif not len(self.allowed_methods):
             messages.error(
                 request,
-                "No verification method is available."
+                _("No verification method is available")
             )
             return self.get_error_redirect(
                 can_retry=False
@@ -137,7 +138,7 @@ class Twilio2FAMixin(object):
             # Verification not found
             messages.error(
                 self.request,
-                "The verification has expired. Please try again."
+                _("The verification has expired. Please try again.")
             )
             return self.get_redirect("start")
 
@@ -190,7 +191,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
             if timeout_value > datetime.now(tz=timeout_value.tzinfo):
                 messages.error(
                     request,
-                    "You cannot make another 2FA verification attempt at this time."
+                    _("You cannot make another verification attempt at this time.")
                 )
                 return self.get_error_redirect(can_retry=False)
             else:
@@ -199,7 +200,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         if not self.phone_number:
             messages.warning(
                 request,
-                "You must add a phone number to your account before proceeding."
+                _("You must add a phone number to your account before proceeding.")
             )
             return self.get_redirect("register")
 
@@ -381,7 +382,7 @@ class Twilio2FAChangeView(Twilio2FARegistrationFormView):
         if not ctx["can_change"]:
             messages.error(
                 self.request,
-                "You are not allowed to make changes to your phone number."
+                _("You are not allowed to make changes to your phone number.")
             )
 
         return ctx
@@ -438,7 +439,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         if elapsed.total_seconds() < min_retry_wait:
             messages.warning(
                 request,
-                "Please allow up to 3 minutes before retrying."
+                _(f"Please allow at least {round(min_retry_wait / 60, 0)} minutes before retrying.")
             )
             return self.get_redirect("verify")
 
@@ -455,7 +456,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
 
         messages.success(
             request,
-            "Verification has been re-sent."
+            _("Verification has been re-sent.")
         )
 
         return self.get_redirect("verify")
@@ -466,7 +467,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         if method not in self.allowed_methods:
             messages.error(
                 request,
-                "The form has been tampered with. Please don't do that."
+                _("The form has been tampered with. Please don't do that.")
             )
             return self.get(request, *args, **kwargs)
 
@@ -521,8 +522,8 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
             if e.code == 60223:
                 messages.error(
                     self.request,
-                    f"Unable to verify using {self.AVAILABLE_METHODS[method]['label']} at this time. "
-                    f"Please try a different method."
+                    _(f"Unable to verify using {self.AVAILABLE_METHODS[method]['label']} at this time. "
+                      f"Please try a different method.")
                 )
                 return self.get_redirect("start")
 
@@ -557,7 +558,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
 
         messages.error(
             self.request,
-            "You have made too many attempts to verify."
+            _("You have made too many attempts to verify.")
         )
 
         return self.get_error_redirect(
@@ -619,7 +620,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
 
         messages.error(
             self.request,
-            "Verification code was invalid"
+            _("Verification code was invalid")
         )
 
         return super().form_invalid(form)
