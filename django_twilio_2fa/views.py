@@ -156,7 +156,8 @@ class Twilio2FAMixin(object):
     def clear_session(self):
         for key in self.SESSION_VALUES:
             key_ = f"{SESSION_PREFIX}_{key}"
-            if key not in self.request.session:
+
+            if key_ not in self.request.session:
                 continue
 
             del self.request.session[key_]
@@ -182,13 +183,16 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         except ValidationError:
             self.phone_number = None
 
+        self.timeout_value = get_setting(
+            "TIMEOUT_CB",
+            callback_kwargs={
+                "user": request.user
+            }
+        )
+
     def dispatch(self, request, *args, **kwargs):
-        timeout_value = self.get_session_value(SESSION_TIMEOUT)
-
-        if timeout_value:
-            timeout_value = datetime.strptime(timeout_value, DATEFMT)
-
-            if timeout_value > datetime.now(tz=timeout_value.tzinfo):
+        if self.timeout_value:
+            if self.timeout_value > datetime.now(tz=self.timeout_value.tzinfo):
                 messages.error(
                     request,
                     _("You cannot make another verification attempt at this time.")
@@ -268,7 +272,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
             return True
 
         twilio_2fa_verification_status_changed.send(
-            None,
+            sender=None,
             user=self.request.user,
             phone_number=self.e164_phone_number(),
             method=self.get_session_value(SESSION_METHOD),
@@ -545,15 +549,20 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
     def handle_too_many_attempts(self):
         self.cancel_verification()
 
-        timeout = get_setting(
+        timeout_seconds = get_setting(
             "MAX_ATTEMPTS_TIMEOUT",
             default=600
         )
 
-        if timeout:
-            self.set_session_value(
-                SESSION_TIMEOUT,
-                datetime.strftime(datetime.now() + timedelta(seconds=int(timeout)), DATEFMT)
+        if timeout_seconds:
+            twilio_2fa_verification_retries_exceeded.send(
+                sender=None,
+                user=self.request.user,
+                phone_number=self.phone_number,
+                method=self.get_session_value(SESSION_METHOD),
+                twilio_sid=self.get_session_value(SESSION_SID),
+                timeout=timeout_seconds,
+                timeout_until=datetime.now() + timedelta(seconds=int(timeout_seconds))
             )
 
         messages.error(
@@ -562,7 +571,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
         )
 
         return self.get_error_redirect(
-            can_retry=True if not timeout else False
+            can_retry=True if not timeout_seconds else False
         )
 
     def form_valid(self, form):
@@ -601,7 +610,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
         if verify.status == "approved":
             # Send this signal manually
             twilio_2fa_verification_status_changed.send(
-                None,
+                sender=None,
                 user=self.request.user,
                 phone_number=self.e164_phone_number(),
                 method=self.get_session_value(SESSION_METHOD),
@@ -610,7 +619,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
             )
 
             twilio_2fa_verification_success.send(
-                None,
+                sender=None,
                 user=self.request.user,
                 phone_number=self.e164_phone_number(),
                 method=self.get_session_value(SESSION_METHOD)

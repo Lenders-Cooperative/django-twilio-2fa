@@ -15,3 +15,6 @@ class UserProfile(models.Model):
     last_2fa_attempt = models.DateTimeField(
         null=True, blank=True
     )
+    timeout_for_2fa = models.DateTimeField(
+        null=True, blank=True
+    )

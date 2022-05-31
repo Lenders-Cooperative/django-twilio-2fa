@@ -45,7 +45,7 @@
                             {% endif %}
                             <li><strong>Next URL:</strong> {{ request.session.twilio_2fa_next_url|default_if_none:"--" }}</li>
                             <li><strong>Attempts Made:</strong> {{ request.session.twilio_2fa_attempts }}</li>
-                            <li><strong>Timeout:</strong> {{ request.session.twilio_2fa_timeout }}</li>
+                            <li><strong>Timed Out Until:</strong> {{ request.user.profile.timeout_for_2fa }} ({{ request.user.profile.timeout_for_2fa|timeuntil }})</li>
                         </ul>
                     </div>
                 </div>

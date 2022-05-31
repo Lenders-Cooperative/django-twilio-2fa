@@ -290,6 +290,13 @@ Expected return of this callback is a `dict` with one or more of the following v
 * `icon`: Font Awesome 5 icon classes (return `None` to not use an icon)
 * `label`: Label string
 
+### `TIMEOUT_CB`
+
+This callback is triggered on each verification request and should return the timeout timestamp for the current user as a `DateTime` instance or `None` if no timeout exists.
+
+Arguments sent to this callback:
+* `user`: User instance
+
 ## Signals
 
 All signal names are prefixed `twilio_2fa_`.
@@ -305,18 +312,16 @@ Arguments sent with this signal:
 * `method`: Method name
 * `timestamp`: `DateTime` instance
 
-Sender will always be `None`.
-
 ### `verification_success`
 
 This signal is triggered when a user completes verification successfully.
+
+The `verification_status_changed` signal is also triggered during a successful verification.
 
 Arguments sent with this signal:
 * `user`: The user instance
 * `phone_number`: Phone number as string in E164 format
 * `method`: Method used for verification
-
-Sender will always be `None`.
 
 ### `verification_status_changed`
 
@@ -331,7 +336,29 @@ Arguments sent with this signal:
 * `twilio_sid`: The SID for this user's verification
 * `status`: Status verification was changed to
 
-Sender will always be `None`.
+### `verification_failed`
+
+This signal is triggered when the Twilio verification attempt has failed. 
+
+Arguments sent with this signal:
+* `user`: User instance
+* `phone_number`: Phone number as string in E164 format
+* `method`: Method used for verification
+* `twilio_sid`: The SID for this user's verification
+
+### `verification_retries_exceeded`
+
+This signal is trigger when the number of failed attempts to verify exceeds `MAX_ATTEMPTS`. 
+
+You should handle storing the timeout timestamp for retrieval by `TIMEOUT_CB`. 
+
+Arguments sent with this signal:
+* `user`: User instance
+* `phone_number`: Phone number as string in E164 format
+* `method`: Method used for verification
+* `twilio_sid`: The SID for this user's verification
+* `timeout`: The value of `MAX_ATTEMPTS`
+* `timeout_until`: `DateTime` instance of timeout
 
 ## Customization
 

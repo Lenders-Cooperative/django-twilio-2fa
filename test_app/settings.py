@@ -160,6 +160,9 @@ TWILIO_2FA_AUTH_TOKEN = env("TWILIO_2FA_AUTH_TOKEN")
 TWILIO_2FA_SERVICE_ID = env("TWILIO_2FA_SERVICE_ID")
 
 TWILIO_2FA_ALLOWED_METHODS = None
+TWILIO_2FA_ALLOW_CHANGE = False
+TWILIO_2FA_MAX_ATTEMPTS = 5
+
 
 def twilio_2fa_register_cb(user, phone_number):
     from users.models import UserProfile
@@ -176,6 +179,7 @@ def twilio_2fa_register_cb(user, phone_number):
 
 TWILIO_2FA_REGISTER_CB = twilio_2fa_register_cb
 
+
 def twilio_2fa_phone_number(user=None):
     if user and hasattr(user, "profile"):
         return user.profile.phone_number
@@ -184,6 +188,9 @@ def twilio_2fa_phone_number(user=None):
 
 TWILIO_2FA_PHONE_NUMBER_CB = twilio_2fa_phone_number
 
-TWILIO_2FA_ALLOW_CHANGE = False
 
-TWILIO_2FA_MAX_ATTEMPTS = 1
+def twilio_2fa_timeout(user):
+    return user.profile.timeout_for_2fa
+
+TWILIO_2FA_TIMEOUT_CB = twilio_2fa_timeout
+
