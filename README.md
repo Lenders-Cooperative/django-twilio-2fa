@@ -299,17 +299,24 @@ Arguments sent to this callback:
 
 ## Signals
 
-All signal names are prefixed `twilio_2fa_`.
+Signal names are prefixed `twilio_2fa_`.
+
+All signals are sent with at least the following arguments:
+* `request`: Current `Request` instance
+* `user`: `User` instance
+* `twofa`: Instance of `TwoFA`
+
+The `TwoFA` class has the following attributes:
+* `method`: 2FA verification method chosen by user
+* `phone_number`: Phone number used for verification in E164 format
+* `twilio_sid`: The SID for this verification instance
+* `attempts`: Number of attempts to verify
 
 ### `verification_sent`
 
 This signal is triggered anytime a verification is sent. 
 
-Arguments sent with this signal:
-* `twilio_sid`: The SID for this user's verification
-* `user`: The user instance
-* `phone_number`: Phone number as string in E164 format
-* `method`: Method name
+Additional arguments sent with this signal:
 * `timestamp`: `DateTime` instance
 
 ### `verification_success`
@@ -318,10 +325,6 @@ This signal is triggered when a user completes verification successfully.
 
 The `verification_status_changed` signal is also triggered during a successful verification.
 
-Arguments sent with this signal:
-* `user`: The user instance
-* `phone_number`: Phone number as string in E164 format
-* `method`: Method used for verification
 
 ### `verification_status_changed`
 
@@ -329,22 +332,12 @@ This signal is triggered when the Twilio verification status is changed.
 
 Options for `status`: `approved` and `canceled`.
 
-Arguments sent with this signal:
-* `user`: The user instance
-* `phone_number`: Phone number as string in E164 format
-* `method`: Method used for verification
-* `twilio_sid`: The SID for this user's verification
+Additional arguments sent with this signal:
 * `status`: Status verification was changed to
 
 ### `verification_failed`
 
-This signal is triggered when the Twilio verification attempt has failed. 
-
-Arguments sent with this signal:
-* `user`: User instance
-* `phone_number`: Phone number as string in E164 format
-* `method`: Method used for verification
-* `twilio_sid`: The SID for this user's verification
+This signal is triggered when the Twilio verification attempt has failed.
 
 ### `verification_retries_exceeded`
 
@@ -352,11 +345,7 @@ This signal is trigger when the number of failed attempts to verify exceeds `MAX
 
 You should handle storing the timeout timestamp for retrieval by `TIMEOUT_CB`. 
 
-Arguments sent with this signal:
-* `user`: User instance
-* `phone_number`: Phone number as string in E164 format
-* `method`: Method used for verification
-* `twilio_sid`: The SID for this user's verification
+Additional arguments sent with this signal:
 * `timeout`: The value of `MAX_ATTEMPTS`
 * `timeout_until`: `DateTime` instance of timeout
 

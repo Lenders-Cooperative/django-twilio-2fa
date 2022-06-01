@@ -24,6 +24,17 @@ __all__ = [
 logger = logging.getLogger("django_twilio_2fa")
 
 
+class TwoFA(object):
+    method = None
+    phone_number = None
+    twilio_sid = None
+    attempts = 0
+
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+
 class Twilio2FAMixin(object):
     # Session values that should be cleared
     SESSION_VALUES = [
@@ -265,6 +276,14 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
 
         return n[:-4] + self.e164_phone_number()[-4:]
 
+    def build_2fa_obj(self):
+        return TwoFA(
+            phone_number=self.phone_number,
+            method=self.get_session_value(SESSION_METHOD),
+            twilio_sid=self.get_session_value(SESSION_SID),
+            attempts=self.get_session_value(SESSION_ATTEMPTS, 0)
+        )
+
     def update_verification_status(self, status):
         twilio_sid = self.get_session_value(SESSION_SID)
 
@@ -273,11 +292,10 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
 
         twilio_2fa_verification_status_changed.send(
             sender=None,
+            request=self.request,
             user=self.request.user,
-            phone_number=self.e164_phone_number(),
-            method=self.get_session_value(SESSION_METHOD),
-            twilio_sid=twilio_sid,
-            status=status
+            status=status,
+            twofa=self.build_2fa_obj()
         )
 
         try:
@@ -514,11 +532,10 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
 
             twilio_2fa_verification_sent.send(
                 sender=None,
-                twilio_sid=self.get_session_value(SESSION_SID),
+                request=self.request,
                 user=self.request.user,
-                phone_number=self.phone_number,
-                method=self.get_session_value(SESSION_METHOD),
-                timestamp=self.get_session_value(SESSION_TIMESTAMP)
+                timestamp=self.get_session_value(SESSION_TIMESTAMP),
+                twofa=self.build_2fa_obj()
             )
 
             return verification.sid
@@ -557,12 +574,11 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
         if timeout_seconds:
             twilio_2fa_verification_retries_exceeded.send(
                 sender=None,
+                request=self.request,
                 user=self.request.user,
-                phone_number=self.phone_number,
-                method=self.get_session_value(SESSION_METHOD),
-                twilio_sid=self.get_session_value(SESSION_SID),
                 timeout=timeout_seconds,
-                timeout_until=datetime.now() + timedelta(seconds=int(timeout_seconds))
+                timeout_until=datetime.now() + timedelta(seconds=int(timeout_seconds)),
+                twofa=self.build_2fa_obj()
             )
 
         messages.error(
@@ -611,18 +627,17 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
             # Send this signal manually
             twilio_2fa_verification_status_changed.send(
                 sender=None,
+                request=self.request,
                 user=self.request.user,
-                phone_number=self.e164_phone_number(),
-                method=self.get_session_value(SESSION_METHOD),
-                twilio_sid=self.get_session_value(SESSION_SID),
-                status=verify.status
+                status=verify.status,
+                twofa=self.build_2fa_obj()
             )
 
             twilio_2fa_verification_success.send(
                 sender=None,
+                request=self.request,
                 user=self.request.user,
-                phone_number=self.e164_phone_number(),
-                method=self.get_session_value(SESSION_METHOD)
+                twofa=self.build_2fa_obj()
             )
 
             return super().form_valid(form)
