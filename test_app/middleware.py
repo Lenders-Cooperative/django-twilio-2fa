@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django_twilio_2fa.utils import *
+from django.contrib import messages
 
 
 class Require2faMiddleware(object):
@@ -9,25 +10,26 @@ class Require2faMiddleware(object):
         self.get_response = get_response
 
     def has_2fa_expired(self, request):
-        last_attempt = request.user.profile.last_2fa_attempt
-
-        if not last_attempt:
-            return True
+        expiration = request.session.get("twilio_2fa_expiration", "20000101000000")
 
         try:
-            if datetime.now(tz=last_attempt.tzinfo) > (last_attempt + timedelta(minutes=30)):
-                return True
-
+            expiration = datetime.strptime(expiration, "%Y%m%d%H%M%S")
         except ValueError:
-            return True
+            expiration = None
 
-        return False
+        return not expiration or datetime.now() > expiration
 
     def is_2fa_required(self, request):
-        if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
-            return True
+        if not request.user.is_authenticated:
+            return False
 
-        return False
+        if not request.session.get("is_post_login", False):
+            return False
+
+        if "is_post_login" in request.session:
+            del request.session["is_post_login"]
+
+        return True
 
     def __call__(self, request):
         return self.get_response(request)
