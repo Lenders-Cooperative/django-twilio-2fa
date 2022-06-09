@@ -48,7 +48,7 @@ class Twilio2FAMixin(object):
             "label": "Text Message",
             "icon": "fas fa-sms",
         },
-        "voice": {
+        "call": {
             "value": "call",
             "label": "Phone Call",
             "icon": "fas fa-phone"
@@ -482,6 +482,16 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         )
 
         return self.get_redirect("verify")
+
+    def get(self, request, *args, **kwargs):
+        twilio_2fa_verification_start.send(
+            sender=None,
+            request=request,
+            user=request.user,
+            twofa=self.build_2fa_obj()
+        )
+
+        return super().get(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
         method = request.POST.get("method")

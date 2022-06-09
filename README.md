@@ -312,6 +312,10 @@ The `TwoFA` class has the following attributes:
 * `twilio_sid`: The SID for this verification instance
 * `attempts`: Number of attempts to verify
 
+### `verification_start`
+
+This signal is triggered when a verification is started (a `GET` call to `/start`). Should be used to clear any verification sessions.
+
 ### `verification_sent`
 
 This signal is triggered anytime a verification is sent. 

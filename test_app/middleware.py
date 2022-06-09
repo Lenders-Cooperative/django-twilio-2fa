@@ -9,25 +9,12 @@ class Require2faMiddleware(object):
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def has_2fa_expired(self, request):
-        expiration = request.session.get("twilio_2fa_expiration", "20000101000000")
-
-        try:
-            expiration = datetime.strptime(expiration, "%Y%m%d%H%M%S")
-        except ValueError:
-            expiration = None
-
-        return not expiration or datetime.now() > expiration
-
     def is_2fa_required(self, request):
         if not request.user.is_authenticated:
             return False
 
-        if not request.session.get("is_post_login", False):
+        if request.session.get("twilio_2fa_verification", False):
             return False
-
-        if "is_post_login" in request.session:
-            del request.session["is_post_login"]
 
         return True
 
@@ -38,7 +25,7 @@ class Require2faMiddleware(object):
         if "static" in request.path or (request.resolver_match and URL_PREFIX in request.resolver_match.view_name):
             return
 
-        if self.is_2fa_required(request) and self.has_2fa_expired(request):
+        if self.is_2fa_required(request):
             next_url = reverse(
                 request.resolver_match.view_name,
                 kwargs=view_kwargs,

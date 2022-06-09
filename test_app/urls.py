@@ -14,6 +14,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse
+
+def clear_session(request, *args, **kwargs):
+    request.session["twilio_2fa_verification"] = False
+    return HttpResponse("Done")
 
 urlpatterns = [
     path(
@@ -23,5 +28,9 @@ urlpatterns = [
     path(
         "2fa/",
         include("django_twilio_2fa.urls")
+    ),
+    path(
+        "clear_session",
+        clear_session
     )
 ]
