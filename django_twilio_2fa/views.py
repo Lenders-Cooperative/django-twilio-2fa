@@ -161,11 +161,24 @@ class Twilio2FAMixin(object):
 
     def set_session_value(self, key, value):
         key = f"{SESSION_PREFIX}_{key}"
+
+        if isinstance(value, datetime):
+            value = value.strftime(DATEFMT)
+
         self.request.session[key] = value
+
         return value
 
-    def clear_session(self):
-        for key in self.SESSION_VALUES:
+    def clear_session(self, keys=None):
+        if keys is None:
+            keys = []
+
+            for key in self.SESSION_VALUES:
+                keys.append(key)
+        elif not isinstance(keys, list):
+            keys = [keys]
+
+        for key in keys:
             key_ = f"{SESSION_PREFIX}_{key}"
 
             if key_ not in self.request.session:
@@ -210,7 +223,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
                 )
                 return self.get_error_redirect(can_retry=False)
             else:
-                self.clear_session()
+                self.clear_session(SESSION_TIMEOUT)
 
         if not self.phone_number:
             messages.warning(
@@ -451,7 +464,10 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         return ctx
 
     def retry_action(self, request, *args, **kwargs):
-        elapsed = datetime.now() - datetime.strptime(self.get_session_value(SESSION_TIMESTAMP), DATEFMT)
+        elapsed = datetime.now() - datetime.strptime(
+            self.get_session_value(SESSION_TIMESTAMP, "20000101000000"),
+            DATEFMT
+        )
 
         min_retry_wait = get_setting(
             "RETRY_TIME",
@@ -461,7 +477,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         if elapsed.total_seconds() < min_retry_wait:
             messages.warning(
                 request,
-                _(f"Please allow at least {round(min_retry_wait / 60, 0)} minutes before retrying.")
+                _(f"Please allow at least {int(round(min_retry_wait / 60, 0))} minutes before retrying.")
             )
             return self.get_redirect("verify")
 
@@ -538,7 +554,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
 
             self.set_session_value(SESSION_SID, verification.sid)
             self.set_session_value(SESSION_METHOD, method)
-            self.set_session_value(SESSION_TIMESTAMP, datetime.now().strftime(DATEFMT))
+            self.set_session_value(SESSION_TIMESTAMP, datetime.now())
 
             twilio_2fa_verification_sent.send(
                 sender=None,

@@ -38,6 +38,8 @@
                     <div class="card-body">
                         <ul class="list-unstyled">
                             <li><strong>User:</strong> {{ request.user }} ({{ request.user.pk }})</li>
+                            <li><strong>Timestamp:</strong> {{ request.session.twilio_2fa_timestamp }}</li>
+                            <li><strong>Twilio SID:</strong> {{ request.session.twilio_2fa_sid }}</li>
                             {% if is_verification %}
                             <li><strong>E164 Number:</strong> {{ phone_number }}</li>
                             <li><strong>Obfuscated Number:</strong> {{ obfuscated_phone_number }}</li>
@@ -45,7 +47,7 @@
                             {% endif %}
                             <li><strong>Next URL:</strong> {{ request.session.twilio_2fa_next_url|default_if_none:"--" }}</li>
                             <li><strong>Attempts Made:</strong> {{ request.session.twilio_2fa_attempts }}</li>
-                            <li><strong>Timed Out Until:</strong> {{ request.user.profile.timeout_for_2fa }} ({{ request.user.profile.timeout_for_2fa|timeuntil }})</li>
+                            <li><strong>Timed Out Until:</strong> {{ request.session.twilio_2fa_timeout }}</li>
                         </ul>
                     </div>
                 </div>
