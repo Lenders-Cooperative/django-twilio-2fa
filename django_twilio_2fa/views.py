@@ -366,7 +366,10 @@ class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
             "REGISTER_CB",
             callback_kwargs={
                 "user": self.request.user,
-                "phone_number": phone_number
+                "phone_number": phonenumbers.format_number(
+                    parse_phone_number(phone_number),
+                    phonenumbers.PhoneNumberFormat.E164
+                )
             }
         )
 
