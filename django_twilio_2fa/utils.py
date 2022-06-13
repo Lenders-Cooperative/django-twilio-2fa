@@ -122,6 +122,9 @@ def verify_phone_number(phone_number, do_lookup=False):
         country_code = response.country_code
         carrier_type = response.carrier.get("type", "")
 
+        if carrier_type is None:
+            raise ValidationError(f"Invalid phone number.")
+
         if carrier_type not in allowed_carrier_types:
             raise ValidationError(f"{carrier_type.title()} phone numbers are not allowed. "
                                   f"Must be a {' or '.join(allowed_carrier_types)} phone number.")
