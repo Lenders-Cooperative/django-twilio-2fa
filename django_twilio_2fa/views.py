@@ -112,6 +112,10 @@ class Twilio2FAMixin(object):
     def dispatch(self, request, *args, **kwargs):
         view_name = request.resolver_match.view_name.replace(URL_PREFIX + ":", "")
 
+        if not request.user.is_authenticated:
+            # Redirect unauthenticated users
+            return HttpResponseRedirect(get_setting("UNAUTHENTICATED_REDIRECT", default=settings.LOGIN_URL))
+
         if view_name in ["failed"]:
             # Always allow these views to be dispatched properly
             pass
