@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime, timedelta
 from django.conf import settings
-from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 from django.views.generic import FormView, TemplateView
@@ -16,7 +15,7 @@ from .dispatch import *
 
 
 __all__ = [
-    "Twilio2FAIndexView", "Twilio2FARegisterView", "Twilio2FAChangeView", "Twilio2FAStartView", "Twilio2FAVerifyView",
+    "Twilio2FARegisterView", "Twilio2FAChangeView", "Twilio2FAStartView", "Twilio2FAVerifyView",
     "Twilio2FASuccessView", "Twilio2FAFailedView",
 ]
 
@@ -108,27 +107,6 @@ class Twilio2FAMixin(object):
                 SESSION_NEXT_URL,
                 request.GET.get("next")
             )
-
-    def dispatch(self, request, *args, **kwargs):
-        view_name = request.resolver_match.view_name.replace(URL_PREFIX + ":", "")
-
-        if not request.user.is_authenticated:
-            # Redirect unauthenticated users
-            return HttpResponseRedirect(get_setting("UNAUTHENTICATED_REDIRECT", default=settings.LOGIN_URL))
-
-        if view_name in ["failed"]:
-            # Always allow these views to be dispatched properly
-            pass
-        elif not len(self.allowed_methods):
-            messages.error(
-                request,
-                _("No verification method is available")
-            )
-            return self.get_error_redirect(
-                can_retry=False
-            )
-
-        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -229,13 +207,6 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
             else:
                 self.clear_session(SESSION_TIMEOUT)
 
-        if not self.phone_number:
-            messages.warning(
-                request,
-                _("You must add a phone number to your account before proceeding.")
-            )
-            return self.get_redirect("register")
-
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
@@ -333,16 +304,6 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         return self.update_verification_status("canceled")
 
 
-class Twilio2FAIndexView(Twilio2FAMixin, TemplateView):
-    template_name = "twilio_2fa/_base.html"
-
-    def get(self, request, *args, **kwargs):
-        return self.get_redirect("start")
-
-    def post(self, request, *args, **kwargs):
-        return self.get(request, *args, **kwargs)
-
-
 class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
     form_class = Twilio2FARegistrationForm
     success_url = reverse_lazy("twilio_2fa:start")
@@ -434,7 +395,30 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
     success_url = reverse_lazy("twilio_2fa:verify")
     template_name = "twilio_2fa/start.html"
 
-    def dispatch(self, request, *args, **kwargs):
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        ctx["methods"] = [self.AVAILABLE_METHODS[method] for method in self.allowed_methods]
+
+        return ctx
+
+    def get(self, request, *args, **kwargs):
+        if not len(self.allowed_methods):
+            messages.error(
+                request,
+                _("No verification method is available")
+            )
+            return self.get_error_redirect(
+                can_retry=False
+            )
+
+        if not self.phone_number:
+            messages.warning(
+                request,
+                _("You must add a phone number to your account before proceeding.")
+            )
+            return self.get_redirect("register")
+
         action = request.GET.get("action")
 
         if not self.phone_number:
@@ -446,10 +430,16 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
             if r is not None:
                 return r
 
-        if request.method == "GET":
-            self.clear_session()
+        self.clear_session()
 
-        if request.method == "GET" and len(self.allowed_methods) == 1:
+        twilio_2fa_verification_start.send(
+            sender=None,
+            request=request,
+            user=request.user,
+            twofa=self.build_2fa_obj()
+        )
+
+        if len(self.allowed_methods) == 1:
             # If only one option exists, we start the verification and send the user on
             self.send_verification(
                 self.allowed_methods[0]
@@ -459,16 +449,30 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
                 self.success_url
             )
 
-        logger.debug("Start dispatch")
+        return super().get(request, *args, **kwargs)
 
-        return super().dispatch(request, *args, **kwargs)
+    def post(self, request, *args, **kwargs):
+        method = request.POST.get("method")
 
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
+        if method not in self.allowed_methods:
+            messages.error(
+                request,
+                _("The form has been tampered with. Please don't do that.")
+            )
+            return self.get(request, *args, **kwargs)
 
-        ctx["methods"] = [self.AVAILABLE_METHODS[method] for method in self.allowed_methods]
+        verification_sid = self.send_verification(
+            method
+        )
 
-        return ctx
+        if isinstance(verification_sid, HttpResponseRedirect):
+            return verification_sid
+        elif verification_sid:
+            return HttpResponseRedirect(
+                self.success_url
+            )
+
+        return self.get(request, *args, **kwargs)
 
     def retry_action(self, request, *args, **kwargs):
         elapsed = datetime.now() - datetime.strptime(
@@ -505,39 +509,6 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         )
 
         return self.get_redirect("verify")
-
-    def get(self, request, *args, **kwargs):
-        twilio_2fa_verification_start.send(
-            sender=None,
-            request=request,
-            user=request.user,
-            twofa=self.build_2fa_obj()
-        )
-
-        return super().get(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        method = request.POST.get("method")
-
-        if method not in self.allowed_methods:
-            messages.error(
-                request,
-                _("The form has been tampered with. Please don't do that.")
-            )
-            return self.get(request, *args, **kwargs)
-
-        verification_sid = self.send_verification(
-            method
-        )
-
-        if isinstance(verification_sid, HttpResponseRedirect):
-            return verification_sid
-        elif verification_sid:
-            return HttpResponseRedirect(
-                self.success_url
-            )
-
-        return self.get(request, *args, **kwargs)
 
     def send_verification(self, method):
         try:
@@ -686,7 +657,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
 class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
     template_name = "twilio_2fa/success.html"
 
-    def dispatch(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         next_url = self.get_session_value(
             SESSION_NEXT_URL
         )
@@ -705,7 +676,7 @@ class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
                 verify_success_url
             )
 
-        return super().dispatch(request, *args, **kwargs)
+        return super().get(request, *args, **kwargs)
 
 
 class Twilio2FAFailedView(Twilio2FAMixin, TemplateView):

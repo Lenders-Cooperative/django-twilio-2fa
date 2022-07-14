@@ -44,8 +44,6 @@ Users should enter the flow through the Start view. If they are not registered f
 
 How and when to enter into the flow is determined outside the scope of this project. However, there is sample middleware in `test_app/middleware.py` that can be used as a reference.
 
-If a user is unauthenticated, they will be redirected to a URL specified in `UNAUTHENTICATED_REDIRECT`.
-
 ### Start
 
 This is the primary entrypoint into the 2FA flow.
@@ -260,12 +258,6 @@ If this setting is `None`, `0` or `False`, there will be no timeout and the user
 *Note: This timeout uses the sessions. It would be advisable to put this logic into a middleware and set this value to None.*
 
 Defaults to `600` seconds or 10 minutes.
-
-### `UNAUTHENTICATED_REDIRECT`
-
-URL to redirect unauthenticated users who go directly to one of the 2FA pages. 
-
-Defaults to `settings.LOGIN_URL`.
 
 ### `REGISTER_CB`
 
