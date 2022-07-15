@@ -168,6 +168,21 @@ class Twilio2FAMixin(object):
 
             del self.request.session[key_]
 
+    def get_phone_number(self):
+        phone_number = get_setting(
+            "PHONE_NUMBER_CB",
+            callback_kwargs={
+                "user": self.request.user
+            }
+        )
+
+        try:
+            phone_number = parse_phone_number(phone_number)
+        except ValidationError:
+            phone_number = None
+
+        return phone_number
+
 
 class Twilio2FAVerificationMixin(Twilio2FAMixin):
     """
@@ -177,17 +192,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
 
-        self.phone_number = get_setting(
-            "PHONE_NUMBER_CB",
-            callback_kwargs={
-                "user": self.request.user
-            }
-        )
-
-        try:
-            self.phone_number = parse_phone_number(self.phone_number)
-        except ValidationError:
-            self.phone_number = None
+        self.phone_number = self.get_phone_number()
 
         self.timeout_value = get_setting(
             "TIMEOUT_CB",
@@ -353,6 +358,14 @@ class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
 class Twilio2FARegisterView(Twilio2FARegistrationFormView):
     template_name = "twilio_2fa/register.html"
 
+    def get(self, request, *args, **kwargs):
+        phone_number = self.get_phone_number()
+
+        if phone_number:
+            return self.get_redirect("start")
+
+        return super().get(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
@@ -371,16 +384,28 @@ class Twilio2FARegisterView(Twilio2FARegistrationFormView):
 class Twilio2FAChangeView(Twilio2FARegistrationFormView):
     template_name = "twilio_2fa/change.html"
 
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+
+        self.allow_change = get_setting(
+            "ALLOW_CHANGE",
+            default=False
+        )
+
+        self.allow_user_change = get_setting(
+            "ALLOW_USER_CHANGE_CB",
+            default=False,
+            callback_kwargs={
+                "user": request.user
+            }
+        )
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
         ctx["is_optional"] = False
         ctx["skip_href"] = None
-
-        ctx["can_change"] = get_setting(
-            "ALLOW_CHANGE",
-            default=True
-        )
+        ctx["can_change"] = self.allow_change and self.allow_user_change
 
         if not ctx["can_change"]:
             messages.error(
@@ -411,13 +436,6 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
             return self.get_error_redirect(
                 can_retry=False
             )
-
-        if not self.phone_number:
-            messages.warning(
-                request,
-                _("You must add a phone number to your account before proceeding.")
-            )
-            return self.get_redirect("register")
 
         action = request.GET.get("action")
 

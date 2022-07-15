@@ -62,6 +62,8 @@ Template for this view: `start.html`
 
 If the user has not registered for 2FA and `ALLOW_REGISTER` is `True`, the user will be shown this screen to add a phone number to their account.
 
+If the user has not registered, they will be redirected to the Start view.
+
 If `ALLOW_REGISTER` is `False` and no phone number is available, the user is redirected to the Failed view.
 
 If `REGISTER_OPTIONAL` is `True`, the user has the ability to skip 2FA registration. See that setting for more details.
@@ -74,7 +76,9 @@ Template for this view: `register.html`
 
 ### Change
 
-If the user has already registered and wants to change their phone number, this view is shown. 
+If the user has already registered and wants to change their phone number, this view is shown.
+
+If `ALLOW_CHANGE` or `ALLOW_USER_CHANGE_CB` is `False`, the user will be shown an error.
 
 It is the exact same view as register except `is_optional` is always `False`.
 
@@ -293,6 +297,13 @@ Expected return of this callback is a `dict` with one or more of the following v
 ### `TIMEOUT_CB`
 
 This callback is triggered on each verification request and should return the timeout timestamp for the current user as a `DateTime` instance or `None` if no timeout exists.
+
+Arguments sent to this callback:
+* `user`: User instance
+
+### `ALLOW_USER_CHANGE_CB`
+
+This callback is triggered on the Change screen and should return whether the user is allowed to change their phone number.
 
 Arguments sent to this callback:
 * `user`: User instance
