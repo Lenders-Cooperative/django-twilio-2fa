@@ -22,7 +22,11 @@ class Require2faMiddleware(object):
         return self.get_response(request)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        if "static" in request.path or (request.resolver_match and URL_PREFIX in request.resolver_match.view_name):
+        if (
+            "static" in request.path or
+            (request.resolver_match and URL_PREFIX in request.resolver_match.view_name) or
+            "utility" in request.path
+        ):
             return
 
         if self.is_2fa_required(request):

@@ -78,7 +78,7 @@ Template for this view: `register.html`
 
 If the user has already registered and wants to change their phone number, this view is shown.
 
-If `ALLOW_CHANGE` or `ALLOW_USER_CHANGE_CB` is `False`, the user will be shown an error.
+If `ALLOW_CHANGE` or `IS_VERIFIED` is `False`, the user will be shown an error.
 
 It is the exact same view as register except `is_optional` is always `False`.
 
@@ -263,6 +263,24 @@ If this setting is `None`, `0` or `False`, there will be no timeout and the user
 
 Defaults to `600` seconds or 10 minutes.
 
+### `ALLOW_USER_ERROR_REDIRECT`
+
+When `ALLOW_USER_CB` returns `False`, this setting returns a URL to which to redirect the user.
+
+Arguments sent if callable:
+* `user`: User instance
+
+Defaults to `/`.
+
+### `ALLOW_USER_ERROR_MESSAGE`
+
+When `ALLOW_USER_CB` returns `False`, this setting can return a message to add via Django Messages.
+
+Arguments sent if callable:
+* `user`: User instance
+
+Defaults to `You cannot verify using 2FA at this time.`.
+
 ### `REGISTER_CB`
 
 This callback is triggered when the user registers their phone number and should be used to update the user.
@@ -307,6 +325,15 @@ This callback is triggered on the Change screen and should return whether the us
 
 Arguments sent to this callback:
 * `user`: User instance
+
+### `IS_VERIFIED_CB`
+
+This callback is triggered to determine if the authenticated user has been verified by 2FA.
+
+Arguments sent to this callback:
+* `request`: Request instance
+
+Defaults to `False`.
 
 ## Signals
 

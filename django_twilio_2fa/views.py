@@ -108,6 +108,49 @@ class Twilio2FAMixin(object):
                 request.GET.get("next")
             )
 
+    def dispatch(self, request, *args, **kwargs):
+        allow_user = get_setting(
+            "ALLOW_USER_CB",
+            default=True,
+            callback_kwargs={
+                "user": self.request.user
+            }
+        )
+
+        if not allow_user:
+            redirect = get_setting(
+                "ALLOW_USER_ERROR_REDIRECT",
+                default="/",
+                callback_kwargs={
+                    "user": request.user
+                }
+            )
+
+            message = get_setting(
+                "ALLOW_USER_ERROR_MESSAGE",
+                default=_("You cannot verify using 2FA at this time."),
+                callback_kwargs={
+                    "user": request.user
+                }
+            )
+            messages.error(
+                request,
+                message
+            )
+
+            return HttpResponseRedirect(redirect)
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def is_user_verified(self):
+        return get_setting(
+            "IS_VERIFIED_CB",
+            default=False,
+            callback_kwargs={
+                "request": self.request
+            }
+        )
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
@@ -384,28 +427,17 @@ class Twilio2FARegisterView(Twilio2FARegistrationFormView):
 class Twilio2FAChangeView(Twilio2FARegistrationFormView):
     template_name = "twilio_2fa/change.html"
 
-    def setup(self, request, *args, **kwargs):
-        super().setup(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
 
-        self.allow_change = get_setting(
+        allow_change = get_setting(
             "ALLOW_CHANGE",
             default=False
         )
 
-        self.allow_user_change = get_setting(
-            "ALLOW_USER_CHANGE_CB",
-            default=False,
-            callback_kwargs={
-                "user": request.user
-            }
-        )
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-
         ctx["is_optional"] = False
         ctx["skip_href"] = None
-        ctx["can_change"] = self.allow_change and self.allow_user_change
+        ctx["can_change"] = allow_change and self.is_user_verified()
 
         if not ctx["can_change"]:
             messages.error(

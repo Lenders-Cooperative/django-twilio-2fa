@@ -16,9 +16,22 @@ from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
 
-def clear_session(request, *args, **kwargs):
+
+# Utility views
+
+def utility_clear_session(request, *args, **kwargs):
     request.session["twilio_2fa_verification"] = False
-    return HttpResponse("Done")
+    return HttpResponse("Session cleared!")
+
+
+def utility_clear_mfa(request, *args, **kwargs):
+    request.user.profile.phone_number = None
+    request.user.profile.last_2fa_attempt = None
+    request.user.profile.timeout_for_2fa = None
+    request.user.profile.save()
+
+    return HttpResponse("MFA cleared!")
+
 
 urlpatterns = [
     path(
@@ -30,7 +43,11 @@ urlpatterns = [
         include("django_twilio_2fa.urls")
     ),
     path(
-        "clear_session",
-        clear_session
+        "utility/clear_session",
+        utility_clear_session
+    ),
+    path(
+        "utility/clear_mfa",
+        utility_clear_mfa
     )
 ]
