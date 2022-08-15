@@ -55,10 +55,8 @@ def get_setting(name, default=None, callback_kwargs=None):
     return value
 
 
-default_region = get_setting(
-    "PHONE_NUMBER_DEFAULT_REGION",
-    default="US"
-)
+def get_default_region():
+    return get_setting("PHONE_NUMBER_DEFAULT_REGION", default="US")
 
 
 def get_twilio_client(**kwargs):
@@ -76,7 +74,7 @@ def get_twilio_client(**kwargs):
 
 def parse_phone_number(phone_number):
     try:
-        return phonenumbers.parse(phone_number, default_region)
+        return phonenumbers.parse(phone_number, get_default_region())
     except NumberParseException as e:
         raise ValidationError(str(e))
 
