@@ -142,7 +142,7 @@ Verify service ID from the Twilio Console.
 
 A list of allowed methods. The method must be enabled in the Verify service you setup in the Twilio Console.
 
-Available methods: `sms`, `call`, and `whatsapp`. _Note: `email` is currently not supported._
+Available methods: `sms`, `call`, `email` and `whatsapp`. _Note: `email` requires a Sendgrid integration.  Details can be found here https://www.twilio.com/docs/verify/email#create-an-email-template._
 
 If this setting is `None` or not set, all available methods will be presented to the end user.
 
