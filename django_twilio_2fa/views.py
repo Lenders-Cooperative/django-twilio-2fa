@@ -52,11 +52,11 @@ class Twilio2FAMixin(object):
             "label": "Phone Call",
             "icon": "fas fa-phone"
         },
-        # "email": {
-        #     "value": "email",
-        #     "label": "E-mail",
-        #     "icon": "fas fa-envelope",
-        # },
+        "email": {
+            "value": "email",
+            "label": "E-mail",
+            "icon": "fas fa-envelope",
+        },
         "whatsapp": {
             "value": "whatsapp",
             "label": "WhatsApp",

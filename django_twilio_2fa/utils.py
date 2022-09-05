@@ -115,7 +115,7 @@ def verify_phone_number(phone_number, do_lookup=False):
                 .fetch(type=["carrier"])
             )
         except TwilioRestException as e:
-            raise ValidationError("Unable to valid your phone number at this time. Please try again later.")
+            raise ValidationError("Unable to validate your phone number at this time. Please try again later.")
 
         country_code = response.country_code
         carrier_type = response.carrier.get("type", "")
