@@ -3,7 +3,7 @@ charset-normalizer==2.0.12
 Django==2.2.9
 django-environ==0.8.1
 # Editable install with no version control (django-twilio-2fa==0.1)
--e /Users/loganbibby/Development/django-twilio-2fa
+#-e <path to django-twilio-2fa root directory> # /Users/username/Repos/django-twilio-2fa
 django-widget-tweaks==1.4.12
 idna==3.3
 phonenumbers==8.12.47

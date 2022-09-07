@@ -461,11 +461,11 @@ Perform the following steps in the root directory:
 2. Install `django_twilio_2fa`: `pip install -e .`
 
 Perform the following steps in the `test_app` directory:
-
-3. Install requirements: `pip install -r requirements.txt`.
-4. Copy `.env-sample` to `.env` and update with your settings.
-5. Run migrations: `python manage.py migrate`.
-6. Run the server: `python manage.py runserver`.
+3. Update path to this package in the requirements.txt
+4. Install requirements: `pip install -r requirements.txt`.
+5. Copy `.env-sample` to `.env` and update with your twilio settings.
+6. Run migrations: `python manage.py migrate`.
+7. Run the server: `python manage.py runserver`.
 
 The test app should now be available at http://localtest.me:8000.
 
