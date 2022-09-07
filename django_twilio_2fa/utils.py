@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 import phonenumbers
+import pycountry
 from phonenumbers.phonenumberutil import NumberParseException
 from twilio.rest import Client as TwilioClient
 from twilio.base.exceptions import TwilioRestException
@@ -11,7 +12,7 @@ __all__ = [
     "SESSION_PREFIX", "SESSION_METHOD", "SESSION_TIMESTAMP", "SESSION_SID", "SESSION_CAN_RETRY", "SESSION_NEXT_URL",
     "SESSION_TIMEOUT", "SESSION_ATTEMPTS",
     "URL_PREFIX", "DATEFMT",
-    "get_twilio_client", "verify_phone_number", "parse_phone_number",
+    "get_twilio_client", "verify_phone_number", "parse_phone_number", "country_code_choices",
 ]
 
 # Constants
@@ -55,8 +56,31 @@ def get_setting(name, default=None, callback_kwargs=None):
     return value
 
 
-def get_default_region():
-    return get_setting("PHONE_NUMBER_DEFAULT_REGION", default="US")
+def country_code_choices():
+    country_codes = list(set(get_setting(
+        "PHONE_NUMBER_ALLOWED_COUNTRIES",
+        default=["US"]
+    )) - set(get_setting(
+        "PHONE_NUMBER_DISALLOWED_COUNTRIES",
+        default=[]
+    ))).sort()
+
+    choices = []
+    for c in country_codes:
+        country = pycountry.countries.get(alpha2=c)
+        if country:
+            choices.append((c, country.name))
+        else:
+            raise ValueError(f"{c} is not a valid alpha_2 country code")
+
+    return choices
+
+
+def get_default_region(country_code=None):
+    if country_code:
+        return country_code
+    else:
+        return get_setting("PHONE_NUMBER_DEFAULT_REGION", default="US")
 
 
 def get_twilio_client(**kwargs):
@@ -79,7 +103,7 @@ def parse_phone_number(phone_number):
         raise ValidationError(str(e))
 
 
-def verify_phone_number(phone_number, do_lookup=False):
+def verify_phone_number(phone_number, country_code, do_lookup=False):
     allowed_country_codes = get_setting(
         "PHONE_NUMBER_ALLOWED_COUNTRIES",
         default=["US"]

@@ -8,9 +8,15 @@
     <form class="form" method="post">
         <div class="row mb-4">
             <div class="col-12 m-auto">
-                <div class="form-floating has-validation">
-                    {% render_field form.phone_number class+="form-control" placeholder="Placeholder" %}
+                <div class="form-group has-validation">
+                    <label for="country_code">Select your country</label>
+                    {% render_field form.country_code class+="form-control" %}
+                </div>
+            </div>
+            <div class="col-12 m-auto">
+                <div class="form-group has-validation">
                     <label for="phone_number">Enter your phone number</label>
+                    {% render_field form.phone_number class+="form-control" %}
                     {% include "twilio_2fa/_form_errors.html" with field=form.phone_number %}
                 </div>
             </div>
