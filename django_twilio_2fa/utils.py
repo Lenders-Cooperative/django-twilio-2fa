@@ -63,11 +63,13 @@ def country_code_choices():
     )) - set(get_setting(
         "PHONE_NUMBER_DISALLOWED_COUNTRIES",
         default=[]
-    ))).sort()
+    )))
+
+    country_codes.sort()
 
     choices = []
     for c in country_codes:
-        country = pycountry.countries.get(alpha2=c)
+        country = pycountry.countries.get(alpha_2=c)
         if country:
             choices.append((c, country.name))
         else:
@@ -96,9 +98,9 @@ def get_twilio_client(**kwargs):
     return TwilioClient(*args, **kwargs)
 
 
-def parse_phone_number(phone_number):
+def parse_phone_number(phone_number, country_code=None):
     try:
-        return phonenumbers.parse(phone_number, get_default_region())
+        return phonenumbers.parse(phone_number, get_default_region(country_code))
     except NumberParseException as e:
         raise ValidationError(str(e))
 
@@ -124,34 +126,40 @@ def verify_phone_number(phone_number, country_code, do_lookup=False):
         default=["mobile"]
     )
 
+    allowed_methods = get_setting(
+        "ALLOWED_METHODS",
+        default=["sms", "call"]
+    )
+
     if do_lookup and not do_lookup_setting:
         do_lookup = False
 
-    phone_number = parse_phone_number(phone_number)
+    phone_number = parse_phone_number(phone_number, country_code)
 
     if not phonenumbers.is_valid_number(phone_number):
-        raise ValidationError("Invalid phone number")
+        raise ValidationError("Invalid phone number.")
 
     if do_lookup:
         try:
             response = (get_twilio_client().lookups
-                .phone_numbers(phone_number.national_number)
-                .fetch(type=["carrier"])
+                        .phone_numbers(phonenumbers.format_number(phone_number, phonenumbers.PhoneNumberFormat.E164))
+                        .fetch(type=["carrier"])
             )
         except TwilioRestException as e:
             raise ValidationError("Unable to validate your phone number at this time. Please try again later.")
 
         country_code = response.country_code
-        carrier_type = response.carrier.get("type", "")
+        carrier_type = response.carrier.get("type", None)
+
+        if country_code not in allowed_country_codes or country_code in disallowed_country_codes:
+            raise ValidationError(f"We do not allow phone numbers originating from {country_code}.")
 
         if carrier_type is None:
-            raise ValidationError(f"Invalid phone number.")
+            if allowed_methods and "call" not in allowed_methods:
+                raise ValidationError(f"Invalid phone number.")
 
         if carrier_type not in allowed_carrier_types:
             raise ValidationError(f"{carrier_type.title()} phone numbers are not allowed. "
                                   f"Must be a {' or '.join(allowed_carrier_types)} phone number.")
-
-        if country_code not in allowed_country_codes or country_code in disallowed_country_codes:
-            raise ValidationError(f"We do not allow phone numbers originating from {country_code}.")
 
     return True

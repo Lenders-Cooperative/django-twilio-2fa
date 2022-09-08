@@ -12,6 +12,8 @@
 
 Install using `pip install django-twilio-2fa`.
 
+If install fails, try `pip install --upgrade pip`
+
 Add to your `INSTALLED_APPS`:
 ```python
 INSTALLED_APPS = (
