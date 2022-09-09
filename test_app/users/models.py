@@ -12,6 +12,10 @@ class UserProfile(models.Model):
         max_length=15,
         null=True, blank=True
     )
+    phone_carrier_type = models.CharField(
+        max_length=25,
+        null=True, blank=True
+    )
     last_2fa_attempt = models.DateTimeField(
         null=True, blank=True
     )

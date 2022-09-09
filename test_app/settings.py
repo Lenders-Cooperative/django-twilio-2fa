@@ -163,12 +163,12 @@ TWILIO_2FA_PHONE_NUMBER_ALLOWED_COUNTRIES = "US,CA,IN".split(",")
 
 TWILIO_2FA_ALLOW_USER_ERROR_MESSAGE = "nope"
 
-TWILIO_2FA_ALLOWED_METHODS = None
+TWILIO_2FA_ALLOWED_METHODS = ["sms", "call", "email"]
 TWILIO_2FA_ALLOW_CHANGE = False
 TWILIO_2FA_MAX_ATTEMPTS = 5
 
 
-def twilio_2fa_register_cb(user, phone_number):
+def twilio_2fa_register_cb(user, phone_number, phone_carrier_type):
     from users.models import UserProfile
 
     if not hasattr(user, "profile"):
@@ -177,6 +177,7 @@ def twilio_2fa_register_cb(user, phone_number):
         )
 
     user.profile.phone_number = phone_number
+    user.profile.phone_carrier_type = phone_carrier_type
     user.profile.save()
 
     return True
