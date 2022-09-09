@@ -6,7 +6,9 @@
         <div class="row mb-3">
             <div class="col-12 text-center">
                 <p>For the security of your account, we require verification before you can continue on to our site.</p>
-                <p>We will be verifying via <strong>{{ obfuscated_phone_number }}</strong>.</p>
+                <p>We will be verifying via <br><strong>{{ obfuscated_phone_number }}</strong>
+                {% for method in methods %}
+                    {% if method.value == "email" %}<br>or<br><strong>{{ obfuscated_email }}{% endif %}{% endfor %}</strong>.</p>
             </div>
         </div>
         {% include "twilio_2fa/_messages.html" %}

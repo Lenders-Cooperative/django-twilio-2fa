@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
@@ -38,7 +39,8 @@ class Twilio2FAMixin(object):
     # Session values that should be cleared
     SESSION_VALUES = [
         SESSION_SID, SESSION_TIMESTAMP, SESSION_METHOD,
-        SESSION_CAN_RETRY, SESSION_ATTEMPTS,
+        SESSION_CAN_RETRY, SESSION_ATTEMPTS, SESSION_SEND_TO,
+        SESSION_OBFUSCATED_VALUE,
     ]
 
     AVAILABLE_METHODS = {
@@ -236,6 +238,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         super().setup(request, *args, **kwargs)
 
         self.phone_number = self.get_phone_number()
+        self.email = request.user.email
 
         self.timeout_value = get_setting(
             "TIMEOUT_CB",
@@ -264,6 +267,8 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         ctx["phone_number"] = self.e164_phone_number()
         ctx["formatted_phone_number"] = self.formatted_phone_number()
         ctx["obfuscated_phone_number"] = self.obfuscate_phone_number()
+        ctx["email"] = self.email
+        ctx["obfuscated_email"] = self.obfuscate_email()
 
         return ctx
 
@@ -284,6 +289,37 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
             self.phone_number,
             phonenumbers.PhoneNumberFormat.NATIONAL
         )
+
+    def obfuscate_email(self):
+        if not self.email:
+            return None
+
+        if not re.fullmatch(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", self.email):
+            return None
+
+        email_parts = self.email.split("@")
+        u = email_parts[0]
+        d = email_parts[1]
+        dl = len(d) - len(d.split(".")[-1]) - 2
+        e = ""
+        for x, c in enumerate(u):
+            if x < 1:
+                e += c
+            else:
+                if c.isalnum():
+                    e += "X"
+                else:
+                    e += c
+        e += "@"
+        for x, c in enumerate(d):
+            if x < 1 or x > dl:
+                e += c
+            else:
+                if c.isalnum():
+                    e += "X"
+                else:
+                    e += c
+        return e
 
     def obfuscate_phone_number(self):
         if not self.phone_number:
@@ -373,6 +409,7 @@ class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
 
     def form_valid(self, form):
         phone_number = form.cleaned_data.get("phone_number")
+        phone_carrier_type = form.cleaned_data.get("phone_carrier_type")
 
         # This callback should return True or an error message
         updated = get_setting(
@@ -382,7 +419,8 @@ class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
                 "phone_number": phonenumbers.format_number(
                     parse_phone_number(phone_number),
                     phonenumbers.PhoneNumberFormat.E164
-                )
+                ),
+                "phone_carrier_type": phone_carrier_type,
             }
         )
 
@@ -561,12 +599,26 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
         return self.get_redirect("verify")
 
     def send_verification(self, method):
+
+        if method in ["sms", "call", "whatsapp"]:
+            send_to = self.e164_phone_number()
+            obfuscated_value = self.obfuscate_phone_number()
+        elif method == "email":
+            send_to = self.request.user.email
+            obfuscated_value = self.obfuscate_email()
+        else:
+            messages.error(
+                self.request,
+                _("Method not yet implemented.")
+            )
+            return self.get_redirect("verify")
+
         try:
             verification = (get_twilio_client().verify
                 .services(get_setting("SERVICE_ID"))
                 .verifications
                 .create(
-                    to=self.e164_phone_number(),
+                    to=send_to,
                     channel=method,
                     custom_friendly_name=get_setting(
                         "SERVICE_NAME",
@@ -574,7 +626,7 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
                             "user": self.request.user,
                             "request": self.request,
                             "method": method,
-                            "phone_number": self.phone_number
+                            "send_to": send_to,
                         }
                     )
                 )
@@ -583,6 +635,8 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
             self.set_session_value(SESSION_SID, verification.sid)
             self.set_session_value(SESSION_METHOD, method)
             self.set_session_value(SESSION_TIMESTAMP, datetime.now())
+            self.set_session_value(SESSION_SEND_TO, send_to)
+            self.set_session_value(SESSION_OBFUSCATED_VALUE, obfuscated_value)
 
             twilio_2fa_verification_sent.send(
                 sender=None,
@@ -614,6 +668,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
         ctx = super().get_context_data(**kwargs)
 
         ctx["method"] = self.get_session_value(SESSION_METHOD)
+        ctx["obfuscated_value"] = self.get_session_value(SESSION_OBFUSCATED_VALUE)
 
         return ctx
 
@@ -650,7 +705,7 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
                 .services(get_setting("SERVICE_ID"))
                 .verification_checks
                 .create(
-                    to=self.e164_phone_number(),
+                    to=self.get_session_value(SESSION_SEND_TO),
                     code=form.cleaned_data.get("token")
                 )
             )
@@ -720,6 +775,8 @@ class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
         verify_success_url = get_setting(
             "VERIFY_SUCCESS_URL"
         )
+
+        self.clear_session()
 
         if verify_success_url:
             return HttpResponseRedirect(

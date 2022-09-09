@@ -11,7 +11,7 @@
                     {% elif method == "email" %}e-mailed to you
                     {% elif method == "whatsapp" %}sent to you in WhatsApp
                     {% else %}sent to you{% endif %}
-                    at <strong>{{ obfuscated_phone_number }}</strong> in the field below.
+                    at <br><strong>{{ obfuscated_value }}</strong><br>in the field below.
             </div>
         </div>
         {% include "twilio_2fa/_messages.html" %}

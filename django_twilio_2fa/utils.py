@@ -10,7 +10,7 @@ from twilio.base.exceptions import TwilioRestException
 __all__ = [
     "SETTING_PREFIX", "get_setting",
     "SESSION_PREFIX", "SESSION_METHOD", "SESSION_TIMESTAMP", "SESSION_SID", "SESSION_CAN_RETRY", "SESSION_NEXT_URL",
-    "SESSION_TIMEOUT", "SESSION_ATTEMPTS",
+    "SESSION_TIMEOUT", "SESSION_ATTEMPTS", "SESSION_SEND_TO", "SESSION_OBFUSCATED_VALUE",
     "URL_PREFIX", "DATEFMT",
     "get_twilio_client", "verify_phone_number", "parse_phone_number", "country_code_choices",
 ]
@@ -28,6 +28,8 @@ SESSION_CAN_RETRY = "can_retry"
 SESSION_NEXT_URL = "next_url"
 SESSION_TIMEOUT = "timeout"
 SESSION_ATTEMPTS = "attempts"
+SESSION_SEND_TO = "sendto"
+SESSION_OBFUSCATED_VALUE = "obfuscated_value"
 
 DATEFMT = "%Y%m%d%H%M%S"
 
@@ -131,6 +133,8 @@ def verify_phone_number(phone_number, country_code, do_lookup=False):
         default=["sms", "call"]
     )
 
+    res = {}
+
     if do_lookup and not do_lookup_setting:
         do_lookup = False
 
@@ -162,4 +166,7 @@ def verify_phone_number(phone_number, country_code, do_lookup=False):
             raise ValidationError(f"{carrier_type.title()} phone numbers are not allowed. "
                                   f"Must be a {' or '.join(allowed_carrier_types)} phone number.")
 
-    return True
+        res["phone_number"] = response.phone_number
+        res["carrier_type"] = carrier_type
+
+    return res
