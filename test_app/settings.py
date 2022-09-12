@@ -162,7 +162,7 @@ TWILIO_2FA_SERVICE_ID = env("TWILIO_2FA_SERVICE_ID")
 TWILIO_2FA_PHONE_NUMBER_ALLOWED_COUNTRIES = "US,CA,IN".split(",")
 
 TWILIO_2FA_ALLOW_USER_ERROR_MESSAGE = "nope"
-
+TWILIO_2FA_ALLOW_UNVERIFIED_SMS = False
 TWILIO_2FA_ALLOW_CHANGE = False
 TWILIO_2FA_MAX_ATTEMPTS = 5
 
@@ -181,6 +181,7 @@ def twilio_2fa_register_cb(user, phone_number, phone_carrier_type):
 
     return True
 
+
 TWILIO_2FA_REGISTER_CB = twilio_2fa_register_cb
 
 
@@ -190,13 +191,16 @@ def twilio_2fa_phone_number(user=None):
 
     return None
 
+
 TWILIO_2FA_PHONE_NUMBER_CB = twilio_2fa_phone_number
 
 
 def twilio_2fa_timeout(user):
     return user.profile.timeout_for_2fa
 
+
 TWILIO_2FA_TIMEOUT_CB = twilio_2fa_timeout
+
 
 def twilio_allowed_methods(user):
     # what methods are allowed is based on whatever logic is needed.
@@ -205,11 +209,12 @@ def twilio_allowed_methods(user):
     if user and hasattr(user, "profile"):
         if user.profile.phone_number:
             methods.append("call")
-            if user.profile.phone_carrier_type == "mobile":
+            if TWILIO_2FA_ALLOW_UNVERIFIED_SMS or user.profile.phone_carrier_type == "mobile":
                 methods.append("sms")
     if user and user.email:
         methods.append("email")
 
     return methods
+
 
 TWILIO_2FA_ALLOWED_METHODS = twilio_allowed_methods
