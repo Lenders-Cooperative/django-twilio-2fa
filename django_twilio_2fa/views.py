@@ -238,7 +238,13 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         super().setup(request, *args, **kwargs)
 
         self.phone_number = self.get_phone_number()
-        self.email = request.user.email  # FIXME: Needs to come from a callback
+
+        self.email = get_setting(
+            "EMAIL_CB",
+            callback_kwargs={
+                "user": self.request.user
+            }
+        )
 
         self.timeout_value = get_setting(
             "TIMEOUT_CB",
