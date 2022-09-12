@@ -238,7 +238,7 @@ class Twilio2FAVerificationMixin(Twilio2FAMixin):
         super().setup(request, *args, **kwargs)
 
         self.phone_number = self.get_phone_number()
-        self.email = request.user.email
+        self.email = request.user.email  # FIXME: Needs to come from a callback
 
         self.timeout_value = get_setting(
             "TIMEOUT_CB",
@@ -700,12 +700,24 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
         )
 
     def form_valid(self, form):
+        to = self.get_session_value(SESSION_SEND_TO)
+
+        if not to:
+            to = self.get_session_value(SESSION_SID)
+
+        if not to:
+            messages.error(
+                self.request,
+                _("Unable to verify your token at this time")
+            )
+            return super().form_invalid(form)
+
         try:
             verify = (get_twilio_client().verify
                 .services(get_setting("SERVICE_ID"))
                 .verification_checks
                 .create(
-                    to=self.get_session_value(SESSION_SEND_TO),
+                    to=to,
                     code=form.cleaned_data.get("token")
                 )
             )
