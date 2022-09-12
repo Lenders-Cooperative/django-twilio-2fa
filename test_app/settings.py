@@ -163,7 +163,6 @@ TWILIO_2FA_PHONE_NUMBER_ALLOWED_COUNTRIES = "US,CA,IN".split(",")
 
 TWILIO_2FA_ALLOW_USER_ERROR_MESSAGE = "nope"
 
-TWILIO_2FA_ALLOWED_METHODS = ["sms", "call", "email"]
 TWILIO_2FA_ALLOW_CHANGE = False
 TWILIO_2FA_MAX_ATTEMPTS = 5
 
@@ -199,3 +198,18 @@ def twilio_2fa_timeout(user):
 
 TWILIO_2FA_TIMEOUT_CB = twilio_2fa_timeout
 
+def twilio_allowed_methods(user):
+    # what methods are allowed is based on whatever logic is needed.
+    # this  is just an example.
+    methods = []
+    if user and hasattr(user, "profile"):
+        if user.profile.phone_number:
+            methods.append("call")
+            if user.profile.phone_carrier_type == "mobile":
+                methods.append("sms")
+    if user and user.email:
+        methods.append("email")
+
+    return methods
+
+TWILIO_2FA_ALLOWED_METHODS = twilio_allowed_methods
