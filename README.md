@@ -352,6 +352,13 @@ The `TwoFA` class has the following attributes:
 * `twilio_sid`: The SID for this verification instance
 * `attempts`: Number of attempts to verify
 
+### `rate_limited`
+
+This signal is triggered when a request to Twilio has been rate limited. 
+
+Additional arguments sent with this signal:
+* `exc`: `TwilioRestException` instance
+
 ### `verification_start`
 
 This signal is triggered when a verification is started (a `GET` call to `/start`). Should be used to clear any verification sessions.
@@ -473,4 +480,14 @@ The test app should now be available at http://localtest.me:8000.
 
 ### To-Do
 
-* Internationalization
+* ~~Internationalization~~
+* [~~E-mail verification~~](https://www.twilio.com/docs/verify/email)
+* WhatsApp integration
+* [TOTP integration](https://www.twilio.com/docs/verify/quickstarts/totp)
+* [Push for web integration](https://www.twilio.com/docs/verify/quickstarts/push-web)
+* Abstraction for 2FA outside of web flow
+
+### Changelog
+
+* 0.23 - Twilio rate limiting error handling
+* 0.22 - Added internationalization and e-mail verification (thanks to [jgoodsell-summitgrp](https://github.com/jgoodsell-summitgrp))

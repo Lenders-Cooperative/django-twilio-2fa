@@ -172,6 +172,9 @@ class Twilio2FAMixin(object):
         return self.get_redirect("failed")
 
     def handle_twilio_exception(self, exc):
+        # After handling request-specific codes, a TwilioRestException should be passed
+        # to this method for further handling of global codes
+
         if exc.code == 20404:
             # Verification not found
             messages.error(
@@ -179,6 +182,19 @@ class Twilio2FAMixin(object):
                 _("The verification has expired. Please try again.")
             )
             return self.get_redirect("start")
+        elif exc.code == 20429:
+            # Rate limited by Twilio
+            messages.error(
+                self.request,
+                _("Unable to process 2FA requests at this time. Please try again later.")
+            )
+            twilio_2fa_rate_limited.send(
+                sender=None,
+                request=self.request,
+                user=self.request.user,
+                twofa=self.build_2fa_obj()
+            )
+            return self.get_error_redirect()
 
         raise
 
