@@ -16,6 +16,9 @@ def start_2fa(signal, request, user, **kwargs):
 
 @receiver(twilio_2fa_verification_success, sender=None)
 def handle_2fa_success(signal, request, user, **kwargs):
+    if not user:
+        return
+
     user.profile.last_2fa_attempt = datetime.now()
     user.profile.save()
 
@@ -24,7 +27,21 @@ def handle_2fa_success(signal, request, user, **kwargs):
 
 @receiver(twilio_2fa_verification_retries_exceeded, sender=None)
 def handle_2fa_retries_exceeded(signal, request, user, timeout, timeout_until, **kwargs):
+    if not user:
+        return
+
     user.profile.timeout_for_2fa = timeout_until
     user.profile.save()
 
     request.session["twilio_2fa_verification"] = False
+
+
+@receiver(twilio_2fa_set_user_data, sender=None)
+def handle_2fa_data_set(signal, request, user, field, value, **kwargs):
+    if field == "phone_number":
+        user.profile.phone_number = value.e164_format
+        user.profile.phone_carrier_type = value.carrier_type
+        user.profile.save()
+    else:
+        user.email = str(value)
+        user.save()

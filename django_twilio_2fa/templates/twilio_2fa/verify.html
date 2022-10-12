@@ -15,6 +15,11 @@
             </div>
         </div>
         {% include "twilio_2fa/_messages.html" %}
+        {% if form.non_field_errors %}
+        <div class="col-12 alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
         <div class="row mb-4">
             <div class="col-10 m-auto">
 
