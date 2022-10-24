@@ -266,6 +266,9 @@ class TwoFAClient(object):
             user=self.get_user()
         )
 
+    def is_method_allowed(self, method):
+        return method in conf.allowed_methods()
+
     def get_verification_methods(self):
         methods = {}
 

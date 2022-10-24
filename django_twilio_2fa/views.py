@@ -164,13 +164,13 @@ class Twilio2FAStartView(Twilio2FAMixin, TemplateView):
         return ctx
 
     def get(self, request, *args, **kwargs):
-        if not len(self.user_methods):
-            raise NoMethodAvailable()
-
-        if not self.twofa_client.get_phone_number() and not self.twofa_client.get_email():
+        if not self.twofa_client.get_phone_number() and not self.twofa_client.is_method_allowed("email"):
             return self.get_redirect(
                 "register"
             )
+
+        if not len(self.user_methods):
+            raise NoMethodAvailable()
 
         clear_session = request.GET.get("c")
 

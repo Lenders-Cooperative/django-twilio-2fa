@@ -126,6 +126,19 @@ class ViewTestCase(TestCase):
             reverse("twilio_2fa:start")
         )
 
+    def test_no_phone(self, m):
+        mock_twilio_lookup(m)
+
+        r = self.client.get(
+            reverse("twilio_2fa:start"),
+            follow=True
+        )
+
+        self.assertEqual(
+            r.wsgi_request.path,
+            reverse("twilio_2fa:register")
+        )
+
     def test_start(self, m):
         mock_twilio_happy_verification(m)
 
