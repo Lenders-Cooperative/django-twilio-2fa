@@ -44,10 +44,16 @@ class Error(Exception):
             self.display = conf.default_error_display()
 
     def get_code(self):
-        return self.code.format(**self.data)
+        try:
+            return self.code.format(**self.data)
+        except KeyError:
+            return self.code
 
     def get_display(self):
-        return self.display.format(**self.data)
+        try:
+            return self.display.format(**self.data)
+        except KeyError:
+            return self.display
 
     def get_json(self):
         return {
