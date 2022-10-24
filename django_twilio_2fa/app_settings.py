@@ -213,6 +213,10 @@ class Conf(object):
         cb_kwargs_required=["request"],
         description="Friendly name to be used for Twilio Verify (defaults to friendly name of service)"
     )
+    has_clnpc_permission = Setting(
+        "has_clnpc_permission",
+        description="Has permission from CLNPC to lookup Canadian numbers (Twilio support must update your account)"
+    )
     #
     # Twilio 2FA
     verification_expiration = Setting(

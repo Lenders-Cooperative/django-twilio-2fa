@@ -213,7 +213,12 @@ class TwoFAClient(object):
 
         obj.parse_phone_number()
 
-        if conf.do_carrier_lookup():
+        if conf.do_carrier_lookup() and (
+            # Canada requires permission from CLNPC for carrier lookups
+            # See https://support.twilio.com/hc/en-us/articles/360004563433
+            country_code != "CA" or
+            (country_code == "CA" and conf.has_clnpc_permission())
+        ):
             obj.country_code, obj.carrier_type = cls.do_carrier_lookup(obj)
 
             if not cls.is_country_allowed(obj.country_code):
