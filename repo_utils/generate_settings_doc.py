@@ -1,13 +1,22 @@
 import os
-from django.utils.translation import gettext_lazy
-from django_twilio_2fa.app_settings import conf, Constant
+import sys
+import re
+from pathlib import Path
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "test_app.settings"
+sys.path.append(f"{Path(__file__).parent.parent.resolve() / 'test_app'}")
+
+import django
+django.setup()
+
+from django_twilio_2fa.app_settings import conf, Constant
 
 filename = "docs/settings.md"
 
 with open(filename, "w") as fh:
     fh.write("# Available Settings\n\n")
+
+    fh.write("All settings must be prefixed with `TWILIO_2FA_`.\n\n")
 
     settings = []
 
@@ -18,21 +27,44 @@ with open(filename, "w") as fh:
         setting = getattr(conf, setting_name)
 
         if isinstance(setting, Constant):
-            continue
-
-        settings.append((
-            setting.key, setting
-        ))
+            settings.append((
+                setting_name, setting
+            ))
+        else:
+            settings.append((
+                setting.key.replace("TWILIO_2FA_", ""), setting
+            ))
 
     settings.sort(key=lambda n: n[0])
 
     for setting_name, setting in settings:
-        fh.write(f"### `{setting.key}`\n")
+        description = re.sub(r" {2,}", "", setting.description.strip())
+
+        if isinstance(setting, Constant):
+            # fh.write(f"### `{setting_name}`\n")
+            # fh.write("_This is a constant that cannot be changed._\n")
+            #
+            # if description:
+            #     fh.write(f"\n{description}\n\n")
+            #
+            # fh.write("\n\n")
+
+            continue
+
+        fh.write(f"### `{setting_name}`\n")
 
         if setting.must_be_callable:
             fh.write("_This setting must be a callable._\n")
 
-        fh.write(f"\n{setting.description}\n\n")
+        if description:
+            fh.write(f"\n{description}\n\n")
+
+        default = setting.default
+
+        if default in [list, dict]:
+            default = default()
+
+        fh.write(f"Defaults to: `{default}`\n")
 
         if setting.cb_kwargs_required:
             fh.write("\nIf callable, the following kwargs are sent:\n")

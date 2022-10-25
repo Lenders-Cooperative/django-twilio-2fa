@@ -153,7 +153,16 @@ class TwoFAClient(object):
         return self.email
 
     def get_method_details(self, method):
-        return conf.available_methods().get(method, {})
+        details = conf.available_methods().get(method, {})
+        override = conf.method_details().get(method, {})
+
+        for key in ["icon", "label"]:
+            if key not in override:
+                continue
+
+            details[key] = override[key]
+
+        return details
 
     @classmethod
     def allowed_country_codes(cls):

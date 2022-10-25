@@ -31,8 +31,9 @@ DJ_SETTING_PREFIX = "TWILIO_2FA"
 
 
 class Constant(object):
-    def __init__(self, value):
+    def __init__(self, value, description=None):
         self.value = value
+        self.description = description or ""
 
     def __call__(self):
         return self.value
@@ -132,20 +133,27 @@ class Conf(object):
     allowed_methods = Setting(
         "allowed_methods",
         default=list,
-        description="List of methods setup in your Verify service"
+        description="""
+        List of methods setup in your Verify service. The method must be enabled in the Verify service you setup in the Twilio Console.
+        
+        Available methods: `sms`, `call`, `email` and `whatsapp`. 
+        _Note: `email` requires a Sendgrid integration.  Details can be found [here](https://www.twilio.com/docs/verify/email#create-an-email-template)._
+        
+        If this setting is `None` or not set, all available methods will be presented to the end user.
+        """
     )
-    disallowed_redirect = Setting(
-        "allow_user_error_redirect",
-        default="/",
-        cb_kwargs_required=["user"],
-        description="Redirect URL when a user is not allowed to verify"
-    )
-    is_user_verified = Setting(
-        "is_verified",
-        must_be_callable=True,
-        default=False,
-        cb_kwargs_required=["request"],
-        description="Indicates if a user has been verified"
+    method_details = Setting(
+        "method_details",
+        default=dict,
+        description="""
+        Allows overriding a verification method's details like icon and display text.
+        
+        This setting should return a dictionary with one or more methods and the overrides in a nested dictionary.
+        
+        Each method can define one or both of the following:
+         * `label` - Method name displayed to user
+         * `icon` - Icon class (from places like [FontAwesome](https://fontawesome.com/))
+        """
     )
     default_error_code = Setting(
         "default_error_code",
@@ -162,12 +170,11 @@ class Conf(object):
         default=dict,
         must_be_callable=True,
         cb_kwargs_required=["code"],
-        description="Override of error message displayed to user based on given code"
-    )
-    success_redirect_url = Setting(
-        "success_redirect_url",
-        cb_kwargs_required=["user"],
-        description="URL to redirect user to after a successful verification, if `next` is not set"
+        description="""
+        Allows overriding of error messages displayed to user.
+        
+        The [error code](errors.md) is sent and the string or gettext_lazy 
+        """
     )
     allow_userless = Setting(
         "allow_userless",
@@ -196,26 +203,39 @@ class Conf(object):
     twilio_account_sid = Setting(
         "account_sid",
         required=True,
-        description="Twilio account SID"
+        description="""
+        Your Twilio account SID from the Twilio Console.
+        
+        _Note: You cannot use test credentials with Verify._
+        """
     )
     twilio_auth_token = Setting(
         "auth_token",
         required=True,
-        description="Twilio account auth token"
+        description="""
+        Your Twilio account token from the Twilio Console.
+        
+        _Note: You cannot use test credentials with Verify._
+        """
     )
     twilio_service_id = Setting(
         "service_id",
         required=True,
-        description="Twilio Verify service SID"
+        description="Your Twilio Verify service SID from the Twilio Console."
     )
     twilio_service_name = Setting(
         "service_name",
         cb_kwargs_required=["request"],
-        description="Friendly name to be used for Twilio Verify (defaults to friendly name of service)"
+        description="Overrides the Verify service's friendly name set in the Twilio Console."
     )
     has_clnpc_permission = Setting(
         "has_clnpc_permission",
-        description="Has permission from CLNPC to lookup Canadian numbers (Twilio support must update your account)"
+        default=False,
+        description="""
+        To perform a lookup on a Canadian number, you must have permission from the CLNPC and you account must be updated by Twilio support.
+        
+        See [this Twilio support article](https://support.twilio.com/hc/en-us/articles/360004563433).
+        """
     )
     #
     # Twilio 2FA
@@ -227,7 +247,11 @@ class Conf(object):
     send_cooldown = Setting(
         "send_cooldown",
         default=30,  # seconds
-        description="Seconds allowed between sending verifications"
+        description="""
+        Seconds after the last delivery attempt to allow the user to reattempt delivery of the verification.
+        
+        Twilio does not have a limit on the amount of time between retries.
+        """
     )
     max_attempts = Setting(
         "max_attempts",
@@ -255,25 +279,45 @@ class Conf(object):
     allowed_countries = Setting(
         "phone_number_allowed_countries",
         default=["US"],
-        description="List of ISO country codes where phone numbers are allowed"
+        description="List of country codes from which phone numbers are allowed to originate."
     )
     disallowed_countries = Setting(
         "phone_number_disallowed_countries",
         default=list,
-        description="List of ISO country codes where phone numbers are not allowed (overrides allowed country codes)"
+        description="""
+        List of country codes from which phone numbers *are not* allowed to originate. 
+        
+        These countries are *removed* from the allowed countries list.
+        """
     )
     default_country_code = Setting(
         "phone_number_default_region",
         default="US",
-        description="Default ISO country code for phone numbers"
+        description="""
+        Default ISO country code for phone numbers.
+        
+        The default region for [`phonenumbers`](https://github.com/daviddrysdale/python-phonenumbers) library. Typically, this is the country code, but the entire list can be found [here](https://github.com/daviddrysdale/python-phonenumbers/tree/dev/python/phonenumbers/data).
+        
+        Setting this allows users to not need to enter a country code with their phone number. 
+
+        You can set this to `None` to not have a default region. 
+        """
     )
     allowed_carrier_types = Setting(
         "phone_number_allowed_carrier_types",
-        default=["mobile"]
+        default=["mobile"],
+        description="""
+        A list of allowed carrier types.
+
+        Available types: `voip`, `landline`, and `mobile`.
+        
+        _Note: not all countries provide this information._
+        """
     )
     bypass_carrier_on_empty = Setting(
         "phone_number_bypass_carrier_on_empty",
-        default=True
+        default=True,
+        description="Allow bypassing if the carrier information is empty on lookup"
     )
     #
     # User
@@ -282,7 +326,11 @@ class Conf(object):
         must_be_callable=True,
         default=True,
         cb_kwargs_required=["user"],
-        description="Indicates if a user is allowed to use 2FA verification"
+        description="""
+        Indicates if a user is allowed to use 2FA verification.
+        
+        This setting is useful if you have users that are verified outside of the normal flow (such as SSO).
+        """
     )
     allow_registration = Setting(
         "allow_registration",
@@ -301,26 +349,50 @@ class Conf(object):
         required=True,
         must_be_callable=True,
         cb_kwargs_required=["user"],
-        description="List of methods a user is allowed to verify with (will default to allowed methods)"
+        description="""
+        List of methods a user is allowed to verify with.
+        
+        By default, the methods allowed for a user is determined based on data available.
+        For example, a user with a phone number but no carrier type wouldn't be able to use the `sms` method.
+        """
     )
     user_phone_number = Setting(
         "user_phone_number",
         required=True,
         must_be_callable=True,
         cb_kwargs_required=["user"],
-        description="Return a user's phone number as a `PhoneNumber` instance"
+        description="Return a user's phone number as a `django_twilio_2fa.options.PhoneNumber` instance"
     )
     user_email = Setting(
         "user_email",
         required=True,
         must_be_callable=True,
         cb_kwargs_required=["user"],
-        description="Return a user's e-mail address as an `Email` instance"
+        description="Return a user's e-mail address as an `django_twilio_2fa.options.Email` instance"
     )
     #
     # View-based settings
     next_session_key = Constant(
         "twilio_2fa_next"
+    )
+    disallowed_redirect_url = Setting(
+        "disallowed_redirect_url",
+        default="/",
+        cb_kwargs_required=["user"],
+        description="""
+        Redirect URL when a user is not allowed to verify.
+        
+        (Applicable only to view-based 2FA.)
+        """
+    )
+    success_redirect_url = Setting(
+        "success_redirect_url",
+        cb_kwargs_required=["user"],
+        description="""
+        The URL to redirect users to after a successful verification. This _should not_ return a `Response` (like `HttpResponseRedirect`) and should only return the URL as a string.
+
+        (Only applicable to view-based 2FA.)
+        """
     )
 
 
