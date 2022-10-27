@@ -24,6 +24,33 @@ __all__ = [
 logger = logging.getLogger("django_twilio_2fa")
 
 
+def sentry_report(*msgs, exc=None, request=None, **data):
+    try:
+        import sentry_sdk
+    except ImportError:
+        return
+
+    sentry_sdk.set_tag("package", "django_twilio_2fa")
+
+    if request:
+        sentry_sdk.set_context(
+            "session",
+            request.session._session
+        )
+
+    if data:
+        sentry_sdk.set_context(
+            "other_data",
+            data
+        )
+
+    for msg in msgs:
+        sentry_sdk.capture_message(msg)
+
+    if exc:
+        sentry_sdk.capture_exception(exc)
+
+
 class TwoFA(object):
     method = None
     phone_number = None
@@ -174,6 +201,11 @@ class Twilio2FAMixin(object):
     def handle_twilio_exception(self, exc):
         # After handling request-specific codes, a TwilioRestException should be passed
         # to this method for further handling of global codes
+
+        sentry_report(
+            exc=exc,
+            request=self.request
+        )
 
         if exc.code == 20404:
             # Verification not found
@@ -722,6 +754,12 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
         )
 
     def form_valid(self, form):
+        if not self.get_session_value(SESSION_SID):
+            sentry_report(
+                "Twilio session values lost",
+                request=self.request
+            )
+
         to = self.get_session_value(SESSION_SEND_TO)
 
         if not to:
