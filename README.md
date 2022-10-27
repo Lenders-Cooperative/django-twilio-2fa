@@ -185,6 +185,8 @@ Perform the following steps in the `test_app` directory:
 
 The test app should now be available at http://localtest.me:8000.
 
+To run tests, run `python manage.py test` from the `test_app` directory.
+
 ### To-Do
 
 * ~~Internationalization~~
@@ -192,9 +194,10 @@ The test app should now be available at http://localtest.me:8000.
 * WhatsApp integration
 * [TOTP integration](https://www.twilio.com/docs/verify/quickstarts/totp)
 * [Push for web integration](https://www.twilio.com/docs/verify/quickstarts/push-web)
-* Abstraction for 2FA outside of web flow
+* ~~Abstraction for 2FA outside of web flow~~
 
 ### Changelog
 
+* 0.24 - refactored to abstract process; added API endpoints; allow for userless 2FA
 * 0.23 - Twilio rate limiting error handling
 * 0.22 - Added internationalization and e-mail verification (thanks to [jgoodsell-summitgrp](https://github.com/jgoodsell-summitgrp))
