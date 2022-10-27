@@ -48,257 +48,37 @@ urlpatterns = [
 * [Settings](docs/settings.md)
 * [Errors](docs/errors.md)
 
-## Settings
-
-All settings are prefixed with `TWILIO_2FA_`.
-
-Any of the settings can be a callback. However, settings ending with `_CB` **must** be a callback. If a callback setting is defined but is not callable, a `ValueError` will be thrown.
-
-### `ACCOUNT_SID`
-
-Your Twilio account SID from the Twilio Console.
-
-_Note: You cannot use test credentials with Verify._
-
-### `AUTH_TOKEN`
-
-Your Twilio auth token from the Twilio Console.
-
-_Note: You cannot use test credentials with Verify._
-
-### `SERVICE_ID`
-
-Verify service ID from the Twilio Console.
-
-### `ALLOWED_METHODS`
-
-A list of allowed methods. The method must be enabled in the Verify service you setup in the Twilio Console.
-
-Available methods: `sms`, `call`, `email` and `whatsapp`. _Note: `email` requires a Sendgrid integration.  Details can be found here https://www.twilio.com/docs/verify/email#create-an-email-template._
-
-If this setting is `None` or not set, all available methods will be presented to the end user.
-
-### `PHONE_NUMBER_DEFAULT_REGION`
-
-The default region for [`phonenumbers`](https://github.com/daviddrysdale/python-phonenumbers) library. Typically, this is the country code, but the entire list can be found [here](https://github.com/daviddrysdale/python-phonenumbers/tree/dev/python/phonenumbers/data).
-
-Setting this allows users to not need to enter a country code with their phone number. 
-
-You can set this to `None` to not have a default region. 
-
-Defaults to `US` for the United States.
-
-### `PHONE_NUMBER_ALLOWED_COUNTRIES`
-
-A list of country codes from which phone numbers are allowed to originate.
-
-Defaults to `["US"]`.
-
-### `PHONE_NUMBER_DISALLOWED_COUNTRIES`
-
-A list of country codes from which phone numbers *are not* allowed to originate. This can be used in conjunction with `PHONE_NUMBER_ALLOWED_COUNTRIES`.
-
-Defaults to `[]`.
-
-### `PHONE_NUMBER_CARRIER_LOOKUP`
-
-Indicates whether the carrier information lookup should be performed via Twilio. *(Note: carrier lookups may affect billing.)*
-
-Defaults to `True`.
-
-### `PHONE_NUMBER_ALLOWED_CARRIER_TYPES`
-
-A list of allowed carrier types.
-
-Available types: `voip`, `landline`, and `mobile`.
-
-Defaults to `["mobile"]`.
-
-### `OBFUSCATE`
-
-Indicates whether the phone number presented in the views should be obfuscated (`(123) 456-7890` vs `(XXX) XXX-7890`).
-
-Defaults to `True`.
-
-### `ALLOW_REGISTER`
-
-Indicates whether users should be allowed to register their phone number if one does not already exist. 
-
-If this is `False` and the user has no phone number, they will not be able to use 2FA.
-
-Defaults to `True`.
-
-### `REGISTER_OPTIONAL`
-
-Indicates whether user registration can be skipped by a user. 
-
-If `True` and the user clicks the Skip button, the user will be redirected to `REGISTER_OPTIONAL_URL`.
-
-Defaults to `False`.
-
-### `REGISTER_OPTIONAL_URL`
-
-URL to redirect user when skipping registration.
-
-Defaults to `javascript:history.back()`.
-
-### `RETRY_TIME`
-
-Amount of time (in seconds) after the last delivery attempt to allow the user to reattempt delivery of the verification.
-
-Twilio does not have a limit on the amount of time between retries.
-
-Defaults to 180 seconds or 3 minutes.
-
-### `VERIFY_SUCCESS_URL`
-
-The URL to redirect users to after a successful verification. This _should not_ return a `Response` instead (like `HttpResponseRedirect`) and should only return the URL as a string.
-
-Defaults to `reverse_lazy("twilio_2fa:success")`
-
-### `SERVICE_NAME`
-
-Overrides the Verify service's friendly name set in the Twilio Console.
-
-Arguments sent if callable:
-* `user`: User instance
-* `request`: `Request` instance
-* `method`: Method string
-* `phone_number`: Phone number string
-
-Defaults to `None` (no override).
-
-### `ALLOW_CHANGE`
-
-Indicates if a user can change the phone number associated with their 2FA.
-
-Defaults to `True`.
-
-### `MAX_ATTEMPTS`
-
-The maximum number of attempts the user has to successfully verify.
-
-Arguments sent if callable:
-* `user`: User instance
-
-Defaults to `5`.
-
-### `MAX_ATTEMPTS_TIMEOUT`
-
-Amount of time (in seconds) before the user will be able to attempt another verification after a maximum attempts failure.
-
-A timed out user will be redirected to the Failure view.
-
-If this setting is `None`, `0` or `False`, there will be no timeout and the user will be able to immediately try again.
-
-*Note: This timeout uses the sessions. It would be advisable to put this logic into a middleware and set this value to None.*
-
-Defaults to `600` seconds or 10 minutes.
-
-### `ALLOW_USER_ERROR_REDIRECT`
-
-When `ALLOW_USER_CB` returns `False`, this setting returns a URL to which to redirect the user.
-
-Arguments sent if callable:
-* `user`: User instance
-
-Defaults to `/`.
-
-### `ALLOW_USER_ERROR_MESSAGE`
-
-When `ALLOW_USER_CB` returns `False`, this setting can return a message to add via Django Messages.
-
-Arguments sent if callable:
-* `user`: User instance
-
-Defaults to `You cannot verify using 2FA at this time.`.
-
-### `REGISTER_CB`
-
-This callback is triggered when the user registers their phone number and should be used to update the user.
-
-Arguments sent to this callback:
-* `user`: User instance
-* `phone_number`: Phone number string
-
-No return is expected with this callback. 
-
-### `PHONE_NUMBER_CB`
-
-This callback is triggered on each verification request and should return the user's phone number.
-
-Arguments sent to this callback:
-* `user`: User instance
-
-Expected return of this callback:
-* String of the user's phone number
-
-### `METHOD_DISPLAY_CB`
-
-This callback is triggered on each request and allows customization of the method icon and label.
-
-Arguments sent to this callback:
-* `method`: Method string
-
-Expected return of this callback is a `dict` with one or more of the following values (the default will be used if not included):
-* `icon`: Font Awesome 5 icon classes (return `None` to not use an icon)
-* `label`: Label string
-
-### `TIMEOUT_CB`
-
-This callback is triggered on each verification request and should return the timeout timestamp for the current user as a `DateTime` instance or `None` if no timeout exists.
-
-Arguments sent to this callback:
-* `user`: User instance
-
-### `ALLOW_USER_CHANGE_CB`
-
-This callback is triggered on the Change screen and should return whether the user is allowed to change their phone number.
-
-Arguments sent to this callback:
-* `user`: User instance
-
-### `IS_VERIFIED_CB`
-
-This callback is triggered to determine if the authenticated user has been verified by 2FA.
-
-Arguments sent to this callback:
-* `request`: Request instance
-
-Defaults to `False`.
-
 ## Signals
 
 Signal names are prefixed `twilio_2fa_`.
 
 All signals are sent with at least the following arguments:
-* `request`: Current `Request` instance
-* `user`: `User` instance
-* `twofa`: Instance of `TwoFA`
+* `request`: Current `Request` instance or `None`
+* `user`: `User` instance or `None`
 
-The `TwoFA` class has the following attributes:
-* `method`: 2FA verification method chosen by user
-* `phone_number`: Phone number used for verification in E164 format
-* `twilio_sid`: The SID for this verification instance
-* `attempts`: Number of attempts to verify
+### `twilio_error`
 
-### `rate_limited`
+When the Twilio client throws an error, this signal is emitted -- whether the error was handled. 
 
-This signal is triggered when a request to Twilio has been rate limited. 
+This is a special signal that only provides the exception instance as `exc` and no other arguments.
+
+### `set_user_data`
+
+When a user registers or changes their 2FA data, this signal is emitted the updated information and should be used to update the user's instance.
 
 Additional arguments sent with this signal:
-* `exc`: `TwilioRestException` instance
-
-### `verification_start`
-
-This signal is triggered when a verification is started (a `GET` call to `/start`). Should be used to clear any verification sessions.
+ * `field`: field name (`phone_number` is the only option)
+ * `value`: updated value
 
 ### `verification_sent`
 
 This signal is triggered anytime a verification is sent. 
 
 Additional arguments sent with this signal:
-* `timestamp`: `DateTime` instance
+* `method`: Verification method
+* `verification_sid`: Twilio SID for verification
+* `start_timestamp`: `DateTime` of the original send
+* `last_timestamp`: `DateTime` of the last send attempt
 
 ### `verification_success`
 
@@ -306,6 +86,8 @@ This signal is triggered when a user completes verification successfully.
 
 The `verification_status_changed` signal is also triggered during a successful verification.
 
+Additional arguments sent with this signal:
+* `verification_sid`: Twilio verification SID
 
 ### `verification_status_changed`
 
@@ -315,20 +97,15 @@ Options for `status`: `approved` and `canceled`.
 
 Additional arguments sent with this signal:
 * `status`: Status verification was changed to
+* `verification_sid`: Twilio verification SID
 
 ### `verification_failed`
 
 This signal is triggered when the Twilio verification attempt has failed.
 
-### `verification_retries_exceeded`
-
-This signal is trigger when the number of failed attempts to verify exceeds `MAX_ATTEMPTS`. 
-
-You should handle storing the timeout timestamp for retrieval by `TIMEOUT_CB`. 
-
 Additional arguments sent with this signal:
-* `timeout`: The value of `MAX_ATTEMPTS`
-* `timeout_until`: `DateTime` instance of timeout
+* `verification_sid`: Twilio verification SID
+
 
 ## Customization
 

@@ -353,6 +353,11 @@ class TwoFAClient(object):
 
     @classmethod
     def handle_twilio_error(cls, exc):
+        twilio_2fa_twilio_error.send(
+            None,
+            exc
+        )
+
         if exc.code == 20404:
             # Verification not found
             raise VerificationNotFound()
