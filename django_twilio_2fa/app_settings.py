@@ -393,6 +393,15 @@ class Conf(object):
         (Only applicable to view-based 2FA.)
         """
     )
+    send_immediately_on_single = Setting(
+        "send_immediately_on_single",
+        default=True,
+        description="""
+        If only one verification method is available, skip method selection and send immediately.
+        
+        (Only applicable to view-based 2FA.)
+        """
+    )
 
 
 conf = Conf()

@@ -202,7 +202,7 @@ class Twilio2FAStartView(Twilio2FAMixin, TemplateView):
             )
 
 
-        if len(self.user_methods) == 1:
+        if len(self.user_methods) == 1 and conf.send_immediately_on_single():
             # If only one option exists, we start the verification and send the user on
             self.twofa_client.send_verification(
                 list(self.user_methods.keys())[0]
