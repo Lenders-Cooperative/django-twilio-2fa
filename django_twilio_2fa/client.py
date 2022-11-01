@@ -293,6 +293,12 @@ class TwoFAClient(object):
         for method_name in conf.allowed_methods():
             method_details = self.get_method_details(method_name)
 
+            if method_name not in conf.available_methods():
+                continue
+
+            if methods_allowed_for_user and method_name not in methods_allowed_for_user:
+                continue
+
             if method_details.get("data_required") == "phone_number":
                 if not self.get_phone_number():
                     continue
@@ -303,9 +309,6 @@ class TwoFAClient(object):
                 ):
                     continue
             elif method_details.get("data_required") == "email" and not self.get_email():
-                continue
-
-            if methods_allowed_for_user and method_name not in methods_allowed_for_user:
                 continue
 
             methods[method_name] = method_details
