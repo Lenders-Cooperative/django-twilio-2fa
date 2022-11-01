@@ -364,7 +364,7 @@ class TwoFAClient(object):
     def handle_twilio_error(cls, exc):
         twilio_2fa_twilio_error.send(
             None,
-            exc
+            exc=exc
         )
 
         if exc.code == 20404:
