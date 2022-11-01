@@ -286,6 +286,10 @@ class TwoFAClient(object):
     def get_verification_methods(self):
         methods = {}
 
+        methods_allowed_for_user = conf.user_methods(
+            user=self.get_user()
+        )
+
         for method_name in conf.allowed_methods():
             method_details = self.get_method_details(method_name)
 
@@ -299,6 +303,9 @@ class TwoFAClient(object):
                 ):
                     continue
             elif method_details.get("data_required") == "email" and not self.get_email():
+                continue
+
+            if methods_allowed_for_user and method_name not in methods_allowed_for_user:
                 continue
 
             methods[method_name] = method_details

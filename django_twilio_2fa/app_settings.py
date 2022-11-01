@@ -346,7 +346,6 @@ class Conf(object):
     )
     user_methods = Setting(
         "user_methods",
-        required=True,
         must_be_callable=True,
         cb_kwargs_required=["user"],
         description="""
