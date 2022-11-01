@@ -245,7 +245,6 @@ class TwoFAClient(object):
 
     def send_signal(self, signal, **data):
         data.update({
-            "sender": None,
             "request": self.request,
             "user": self.get_user(),
         })
@@ -253,7 +252,7 @@ class TwoFAClient(object):
         if not self.send_signals:
             return
 
-        signal.send(**data)
+        signal.send(None, **data)
 
     def verification_expires_in(self):
         """
