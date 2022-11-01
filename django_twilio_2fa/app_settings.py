@@ -84,7 +84,7 @@ class Setting(object):
         getter = getattr(settings, self.key)
 
         if callable(getter):
-            for arg in self.cb_kwargs_required:
+            for arg in self.cb_kwargs_required or []:
                 if arg in cb_kwargs:
                     continue
                 raise MissingRequiredCallbackArgument(arg)
