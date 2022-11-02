@@ -70,6 +70,20 @@ If callable, the following kwargs are sent:
  * `user`
 
 
+### `API_CLASSES`
+
+Dictionary of classes list to apply to API views.
+
+Accepted keys:
+* `permission`
+* `authentication`
+* `throttle`
+
+(Only applicable to API-based 2FA.)
+
+Defaults to: `{}`
+
+
 ### `AUTH_TOKEN`
 
 Your Twilio account token from the Twilio Console.
@@ -222,6 +236,15 @@ Seconds after the last delivery attempt to allow the user to reattempt delivery 
 Twilio does not have a limit on the amount of time between retries.
 
 Defaults to: `30`
+
+
+### `SEND_IMMEDIATELY_ON_SINGLE`
+
+If only one verification method is available, skip method selection and send immediately.
+
+(Only applicable to view-based 2FA.)
+
+Defaults to: `True`
 
 
 ### `SERVICE_ID`

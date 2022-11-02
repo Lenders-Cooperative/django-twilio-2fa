@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from ..app_settings import conf
 from ..client import TwoFAClient
 from ..errors import *
 from .serializers import VerificationSerializer, CheckSerializer
@@ -17,6 +18,18 @@ class BaseView(APIView):
             data,
             status=status_code
         )
+
+    def _get_classes(self, key):
+        return conf.api_classes().get(key, [])
+
+    def get_throttles(self):
+        return list(super().get_throttles()) + self._get_classes("throttle")
+
+    def get_permissions(self):
+        return list(super().get_permissions()) + self._get_classes("permission")
+
+    def get_authenticators(self):
+        return list(super().get_authenticators()) + self._get_classes("authentication")
 
     def get_serialized_response(self, **data):
         data.update({

@@ -402,6 +402,22 @@ class Conf(object):
         (Only applicable to view-based 2FA.)
         """
     )
+    #
+    # API settings
+    api_classes = Setting(
+        "api_classes",
+        default=dict,
+        description="""
+        Dictionary of classes list to apply to API views.
+        
+        Accepted keys:
+         * `permission`
+         * `authentication`
+         * `throttle`
+        
+        (Only applicable to API-based 2FA.)
+        """
+    )
 
 
 conf = Conf()
