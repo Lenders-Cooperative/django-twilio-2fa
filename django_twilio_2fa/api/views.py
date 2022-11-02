@@ -52,7 +52,7 @@ class BaseView(APIView):
         self.twofa_client = TwoFAClient(request=self.request)
 
         try:
-            return self.do_post(request, *args, **kwargs)
+            return self.do_post()
         except Error as e:
             return self._get_response(
                 e.get_json(),
@@ -61,7 +61,7 @@ class BaseView(APIView):
 
 
 class SetPhoneNumberView(BaseView):
-    def do_post(self, request, *args, **kwargs):
+    def do_post(self):
         self.twofa_client.set_user_data(
             "phone_number",
             phone_number=self.request.data.get("phone_number"),
@@ -116,7 +116,7 @@ class SendView(BaseView):
 class VerifyView(BaseView):
     serializer_class = CheckSerializer
 
-    def do_post(self, request, *args, **kwargs):
+    def do_post(self):
         verification_id = self.request.data.get("verification_id")
         code = self.request.data.get("code")
 
@@ -136,7 +136,7 @@ class VerifyView(BaseView):
 
 
 class CancelView(BaseView):
-    def do_post(self, request, *args, **kwargs):
+    def do_post(self):
         self.twofa_client.cancel_verification(
             verification_sid=self.request.data.get("verification_id")
         )
@@ -147,7 +147,7 @@ class CancelView(BaseView):
 
 
 class MethodsView(BaseView):
-    def do_post(self, request, *args, **kwargs):
+    def do_post(self):
         return Response({
             "verification_methods": self.twofa_client.get_user_methods()
         })
