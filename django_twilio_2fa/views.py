@@ -164,7 +164,9 @@ class Twilio2FAStartView(Twilio2FAMixin, TemplateView):
         return ctx
 
     def get(self, request, *args, **kwargs):
-        if not self.twofa_client.get_phone_number() and not self.twofa_client.is_method_allowed("email"):
+        if not self.twofa_client.get_phone_number() and (
+                not self.twofa_client.is_method_allowed("email") or conf.user_must_have_phone()
+        ):
             return self.get_redirect(
                 "register"
             )

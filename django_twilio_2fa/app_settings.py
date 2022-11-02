@@ -369,6 +369,11 @@ class Conf(object):
         cb_kwargs_required=["user"],
         description="Return a user's e-mail address as an `django_twilio_2fa.options.Email` instance"
     )
+    user_must_have_phone = Setting(
+        "user_must_have_phone",
+        default=False,
+        description="If a user does not have a phone number, they must register one to verify."
+    )
     #
     # View-based settings
     next_session_key = Constant(

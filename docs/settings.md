@@ -315,6 +315,13 @@ If callable, the following kwargs are sent:
  * `user`
 
 
+### `USER_MUST_HAVE_PHONE`
+
+If a user does not have a phone number, they must register one to verify.
+
+Defaults to: `False`
+
+
 ### `USER_PHONE_NUMBER_CB`
 _This setting must be a callable._
 
