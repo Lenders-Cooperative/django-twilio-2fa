@@ -149,5 +149,5 @@ class CancelView(BaseView):
 class MethodsView(BaseView):
     def do_post(self):
         return Response({
-            "verification_methods": self.twofa_client.get_user_methods()
+            "verification_methods": self.twofa_client.get_verification_methods()
         })
