@@ -257,7 +257,10 @@ class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
     template_name = "twilio_2fa/success.html"
 
     def get(self, request, *args, **kwargs):
-        success_redirect_url = request.session.get(conf.next_session_key())
+        success_redirect_url = request.session.get(
+            conf.next_session_key(),
+            conf.success_redirect_url()
+        )
 
         if success_redirect_url:
             return HttpResponseRedirect(
