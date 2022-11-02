@@ -52,7 +52,7 @@ class BaseView(APIView):
         self.twofa_client = TwoFAClient(request=self.request)
 
         try:
-            return self.do_post()
+            return self.do_post(request, *args, **kwargs)
         except Error as e:
             return self._get_response(
                 e.get_json(),
@@ -61,7 +61,7 @@ class BaseView(APIView):
 
 
 class SetPhoneNumberView(BaseView):
-    def do_post(self):
+    def do_post(self, request, *args, **kwargs):
         self.twofa_client.set_user_data(
             "phone_number",
             phone_number=self.request.data.get("phone_number"),
