@@ -20,16 +20,16 @@ class BaseView(APIView):
         )
 
     def _get_classes(self, key):
-        return conf.api_classes().get(key, [])
+        return conf.api_classes().get(key)
 
     def get_throttles(self):
-        return list(super().get_throttles()) + self._get_classes("throttle")
+        return self._get_classes("throttle") or super().get_throttles()
 
     def get_permissions(self):
-        return list(super().get_permissions()) + self._get_classes("permission")
+        return self._get_classes("permission") or super().get_permissions()
 
     def get_authenticators(self):
-        return list(super().get_authenticators()) + self._get_classes("authentication")
+        return self._get_classes("authentication") or super().get_authenticators()
 
     def get_serialized_response(self, **data):
         data.update({
