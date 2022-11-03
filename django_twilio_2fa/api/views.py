@@ -152,6 +152,17 @@ class CancelView(BaseView):
 
 class MethodsView(BaseView):
     def do_post(self):
+        methods = self.twofa_client.get_verification_methods()
+
+        for key in ["sms", "call"]:
+            if key not in methods:
+                continue
+
+            methods[key]["obfuscated"] = self.twofa_client.get_phone_number().obfuscated
+
+        if "email" in methods:
+            methods["email"]["obfuscated"] = self.twofa_client.get_email().obfuscated
+
         return Response({
-            "verification_methods": self.twofa_client.get_verification_methods()
+            "verification_methods": methods
         })
