@@ -65,14 +65,6 @@ class Twilio2FAMixin(object):
             reverse(f"{URL_PREFIX}:{view_name}", args=args, kwargs=kwargs)
         )
 
-    def build_2fa_obj(self):
-        return TwoFA(
-            phone_number=self.phone_number,
-            method=self.get_session_value(SESSION_METHOD),
-            twilio_sid=self.get_session_value(SESSION_SID),
-            attempts=self.get_session_value(SESSION_ATTEMPTS, 0)
-        )
-
 
 class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
     form_class = Twilio2FARegistrationForm
@@ -261,7 +253,9 @@ class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
     def get(self, request, *args, **kwargs):
         success_redirect_url = request.session.get(
             conf.next_session_key(),
-            conf.success_redirect_url()
+            conf.success_redirect_url(
+                user=self.twofa_client.get_user()
+            )
         )
 
         if success_redirect_url:
