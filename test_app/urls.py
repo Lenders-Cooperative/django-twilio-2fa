@@ -15,6 +15,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse
+from .users.views import index_view
 
 
 # Utility views
@@ -43,11 +44,20 @@ urlpatterns = [
         include("django_twilio_2fa.urls")
     ),
     path(
+        "api/",
+        include("django_twilio_2fa.api.urls")
+    ),
+    path(
         "utility/clear_session",
         utility_clear_session
     ),
     path(
         "utility/clear_mfa",
         utility_clear_mfa
+    ),
+    path(
+        "",
+        index_view,
+        name="index"
     )
 ]

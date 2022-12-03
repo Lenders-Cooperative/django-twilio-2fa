@@ -16,6 +16,9 @@ class Require2faMiddleware(object):
         if request.session.get("twilio_2fa_verification", False):
             return False
 
+        if request.user.is_superuser:
+            return False
+
         return True
 
     def __call__(self, request):

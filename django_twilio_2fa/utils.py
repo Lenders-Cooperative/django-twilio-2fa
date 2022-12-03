@@ -128,15 +128,13 @@ def verify_phone_number(phone_number, country_code, do_lookup=False):
         default=["mobile"]
     )
 
-    allowed_methods = get_setting(
-        "ALLOWED_METHODS",
-        default=["sms", "call"]
-    )
-
     res = {}
 
     if do_lookup and not do_lookup_setting:
         do_lookup = False
+
+    if country_code not in allowed_country_codes or country_code in disallowed_country_codes:
+        raise ValidationError(f"We do not allow phone numbers originating from {country_code}.")
 
     phone_number = parse_phone_number(phone_number, country_code)
 
@@ -157,10 +155,6 @@ def verify_phone_number(phone_number, country_code, do_lookup=False):
 
         if country_code not in allowed_country_codes or country_code in disallowed_country_codes:
             raise ValidationError(f"We do not allow phone numbers originating from {country_code}.")
-
-        if carrier_type is None:
-            if allowed_methods and "call" not in allowed_methods:
-                raise ValidationError(f"Invalid phone number.")
 
         if carrier_type not in allowed_carrier_types:
             raise ValidationError(f"{carrier_type.title()} phone numbers are not allowed. "

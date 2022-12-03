@@ -165,7 +165,7 @@ TWILIO_2FA_ALLOW_USER_ERROR_MESSAGE = "nope"
 TWILIO_2FA_ALLOW_UNVERIFIED_SMS = True
 TWILIO_2FA_ALLOW_CHANGE = False
 TWILIO_2FA_MAX_ATTEMPTS = 5
-
+TWILIO_2FA_ALLOW_UNAUTHENTICATED_USERS = True
 
 def twilio_2fa_register_cb(user, phone_number, phone_carrier_type):
     from users.models import UserProfile
@@ -186,13 +186,39 @@ TWILIO_2FA_REGISTER_CB = twilio_2fa_register_cb
 
 
 def twilio_2fa_phone_number(user=None):
+    from django_twilio_2fa.options import PhoneNumber
+
     if user and hasattr(user, "profile"):
-        return user.profile.phone_number
+        if not user.profile.phone_number:
+            return
+
+        return PhoneNumber(
+            phone_number=user.profile.phone_number,
+            carrier_type=user.profile.phone_carrier_type,
+            country_code="US"
+        )
 
     return None
 
 
-TWILIO_2FA_PHONE_NUMBER_CB = twilio_2fa_phone_number
+TWILIO_2FA_USER_PHONE_NUMBER_CB = twilio_2fa_phone_number
+
+
+def twilio_2fa_email(user=None):
+    from django_twilio_2fa.options import Email
+
+    if user:
+        if not user.email:
+            return
+
+        return Email(
+            email=user.email
+        )
+
+    return
+
+
+TWILIO_2FA_USER_EMAIL_CB = twilio_2fa_email
 
 
 def twilio_2fa_timeout(user):
@@ -217,4 +243,12 @@ def twilio_allowed_methods(user):
     return methods
 
 
-TWILIO_2FA_ALLOWED_METHODS = twilio_allowed_methods
+TWILIO_2FA_ALLOWED_METHODS = ["sms", "call"]
+
+TWILIO_2FA_USER_METHODS_CB = twilio_allowed_methods
+
+TWILIO_2FA_ALLOW_USERLESS = True
+
+TWILIO_2FA_CANCEL_ON_MAX_RETRIES = False
+
+TWILIO_2FA_USER_MUST_HAVE_PHONE = True

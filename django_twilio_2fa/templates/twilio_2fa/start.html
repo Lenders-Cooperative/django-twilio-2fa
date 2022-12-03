@@ -6,9 +6,6 @@
         <div class="row mb-3">
             <div class="col-12 text-center">
                 <p>For the security of your account, we require verification before you can continue on to our site.</p>
-                <p>We will be verifying via <br><strong>{{ obfuscated_phone_number }}</strong>
-                {% for method in methods %}
-                    {% if method.value == "email" %}<br>or<br><strong>{{ obfuscated_email }}{% endif %}{% endfor %}</strong>.</p>
             </div>
         </div>
         {% include "twilio_2fa/_messages.html" %}
@@ -19,7 +16,7 @@
             <div class="col-12 mb-2 text-center">
                 Choose a verification method:
             </div>
-            {% for method in methods %}
+            {% for method in methods.values %}
             <div class="col-12 my-2 text-center">
                 <button type="submit" name="method" value="{{ method.value }}" class="btn btn-outline-primary" style="width: 60%">
                     {% if method.icon %}

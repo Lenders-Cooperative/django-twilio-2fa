@@ -1,18 +1,18 @@
 import logging
-import re
-from datetime import datetime, timedelta
+import json
+from base64 import urlsafe_b64encode, urlsafe_b64decode
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 from django.views.generic import FormView, TemplateView
 from django.urls import reverse_lazy, reverse
 from django.http import HttpResponseRedirect
-from django.core.exceptions import ValidationError
 import phonenumbers
-from twilio.base.exceptions import TwilioRestException
 from .forms import *
 from .utils import *
-from .dispatch import *
+
+from .client import TwoFAClient
+from .errors import *
 
 
 __all__ = [
@@ -24,167 +24,38 @@ __all__ = [
 logger = logging.getLogger("django_twilio_2fa")
 
 
-def sentry_report(*msgs, exc=None, request=None, **data):
-    try:
-        import sentry_sdk
-    except ImportError:
-        return
-
-    sentry_sdk.set_tag("package", "django_twilio_2fa")
-
-    if request:
-        sentry_sdk.set_context(
-            "session",
-            request.session._session
-        )
-
-    if data:
-        sentry_sdk.set_context(
-            "other_data",
-            data
-        )
-
-    for msg in msgs:
-        sentry_sdk.capture_message(msg)
-
-    if exc:
-        sentry_sdk.capture_exception(exc)
-
-
-class TwoFA(object):
-    method = None
-    phone_number = None
-    twilio_sid = None
-    attempts = 0
-
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
-
 class Twilio2FAMixin(object):
-    # Session values that should be cleared
-    SESSION_VALUES = [
-        SESSION_SID, SESSION_TIMESTAMP, SESSION_METHOD,
-        SESSION_CAN_RETRY, SESSION_ATTEMPTS, SESSION_SEND_TO,
-        SESSION_OBFUSCATED_VALUE,
-    ]
-
-    AVAILABLE_METHODS = {
-        "sms": {
-            "value": "sms",
-            "label": "Text Message",
-            "icon": "fas fa-sms",
-        },
-        "call": {
-            "value": "call",
-            "label": "Phone Call",
-            "icon": "fas fa-phone"
-        },
-        "email": {
-            "value": "email",
-            "label": "E-mail",
-            "icon": "fas fa-envelope",
-        },
-        "whatsapp": {
-            "value": "whatsapp",
-            "label": "WhatsApp",
-            "icon": "fab fa-whatsapp"
-        }
-    }
-
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
 
-        allowed_methods = get_setting(
-            "ALLOWED_METHODS",
-            callback_kwargs={
-                "user": request.user
-            }
+        self.twofa_client = TwoFAClient(
+            request=request
         )
-
-        if allowed_methods is None:
-            self.allowed_methods = list(self.AVAILABLE_METHODS.keys())
-        elif len(allowed_methods):
-            self.allowed_methods = []
-            for method in allowed_methods:
-                if method not in self.AVAILABLE_METHODS:
-                    raise KeyError(
-                        f"2FA methods '{method}' is invalid. Must be one of {', '.join(self.AVAILABLE_METHODS.keys())}"
-                    )
-
-                method_customization = get_setting(
-                    "METHOD_DISPLAY_CB",
-                    callback_kwargs={
-                        "method": method
-                    }
-                )
-
-                if method_customization and isinstance(method_customization, dict):
-                    if "label" in method_customization:
-                        self.AVAILABLE_METHODS[method]["label"] = method_customization["label"]
-
-                    if "icon" in method_customization:
-                        self.AVAILABLE_METHODS[method]["icon"] = method_customization["icon"]
-
-                self.allowed_methods.append(method)
-        else:
-            self.allowed_methods = []
 
         if request.GET.get("next"):
-            self.set_session_value(
-                SESSION_NEXT_URL,
-                request.GET.get("next")
-            )
+            request.session[conf.next_session_key()] = request.GET.get("next")
 
     def dispatch(self, request, *args, **kwargs):
-        allow_user = get_setting(
-            "ALLOW_USER_CB",
-            default=True,
-            callback_kwargs={
-                "user": self.request.user
-            }
-        )
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except Error as e:
+            error = e.get_json()
+            del error["data"]  # Remove data for security
+            error = json.dumps(error)
 
-        if not allow_user:
-            redirect = get_setting(
-                "ALLOW_USER_ERROR_REDIRECT",
-                default="/",
-                callback_kwargs={
-                    "user": request.user
-                }
+            return HttpResponseRedirect(
+                f"{reverse('twilio_2fa:failed')}?e={urlsafe_b64encode(error.encode()).decode()}"
             )
-
-            message = get_setting(
-                "ALLOW_USER_ERROR_MESSAGE",
-                default=_("You cannot verify using 2FA at this time."),
-                callback_kwargs={
-                    "user": request.user
-                }
-            )
-            messages.error(
-                request,
-                message
-            )
-
-            return HttpResponseRedirect(redirect)
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def is_user_verified(self):
-        return get_setting(
-            "IS_VERIFIED_CB",
-            default=False,
-            callback_kwargs={
-                "request": self.request
-            }
-        )
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["is_debug"] = settings.DEBUG
-        ctx["is_verification"] = False
+        if settings.DEBUG:
+            ctx["debug"] = self.twofa_client.session._to_dict()
+            ctx["debug"].update({
+                "resend_in": self.twofa_client.can_resend_verification_in(),
+                "expires_in": self.twofa_client.verification_expires_in()
+            })
 
         return ctx
 
@@ -193,253 +64,6 @@ class Twilio2FAMixin(object):
         return HttpResponseRedirect(
             reverse(f"{URL_PREFIX}:{view_name}", args=args, kwargs=kwargs)
         )
-
-    def get_error_redirect(self, can_retry=False):
-        self.set_session_value(SESSION_CAN_RETRY, can_retry)
-        return self.get_redirect("failed")
-
-    def handle_twilio_exception(self, exc):
-        # After handling request-specific codes, a TwilioRestException should be passed
-        # to this method for further handling of global codes
-
-        sentry_report(
-            exc=exc,
-            request=self.request
-        )
-
-        if exc.code == 20404:
-            # Verification not found
-            messages.error(
-                self.request,
-                _("The verification has expired. Please try again.")
-            )
-            return self.get_redirect("start")
-        elif exc.code == 20429:
-            # Rate limited by Twilio
-            messages.error(
-                self.request,
-                _("Unable to process 2FA requests at this time. Please try again later.")
-            )
-            twilio_2fa_rate_limited.send(
-                sender=None,
-                request=self.request,
-                user=self.request.user,
-                twofa=self.build_2fa_obj()
-            )
-            return self.get_error_redirect()
-
-        raise
-
-    def get_session_value(self, key, default=None):
-        key = f"{SESSION_PREFIX}_{key}"
-        return self.request.session.get(key, default)
-
-    def set_session_value(self, key, value):
-        key = f"{SESSION_PREFIX}_{key}"
-
-        if isinstance(value, datetime):
-            value = value.strftime(DATEFMT)
-
-        self.request.session[key] = value
-
-        return value
-
-    def clear_session(self, keys=None):
-        if keys is None:
-            keys = []
-
-            for key in self.SESSION_VALUES:
-                keys.append(key)
-        elif not isinstance(keys, list):
-            keys = [keys]
-
-        for key in keys:
-            key_ = f"{SESSION_PREFIX}_{key}"
-
-            if key_ not in self.request.session:
-                continue
-
-            del self.request.session[key_]
-
-    def get_phone_number(self):
-        phone_number = get_setting(
-            "PHONE_NUMBER_CB",
-            callback_kwargs={
-                "user": self.request.user
-            }
-        )
-
-        try:
-            phone_number = parse_phone_number(phone_number)
-        except ValidationError:
-            phone_number = None
-
-        return phone_number
-
-
-class Twilio2FAVerificationMixin(Twilio2FAMixin):
-    """
-    This mixin should be used once a verification is started or
-    in progress.
-    """
-    def setup(self, request, *args, **kwargs):
-        super().setup(request, *args, **kwargs)
-
-        self.phone_number = self.get_phone_number()
-
-        self.email = get_setting(
-            "EMAIL_CB",
-            callback_kwargs={
-                "user": self.request.user
-            }
-        )
-
-        self.timeout_value = get_setting(
-            "TIMEOUT_CB",
-            callback_kwargs={
-                "user": request.user
-            }
-        )
-
-    def dispatch(self, request, *args, **kwargs):
-        if self.timeout_value:
-            if self.timeout_value > datetime.now(tz=self.timeout_value.tzinfo):
-                messages.error(
-                    request,
-                    _("You cannot make another verification attempt at this time.")
-                )
-                return self.get_error_redirect(can_retry=False)
-            else:
-                self.clear_session(SESSION_TIMEOUT)
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-
-        ctx["is_verification"] = True
-        ctx["phone_number"] = self.e164_phone_number()
-        ctx["formatted_phone_number"] = self.formatted_phone_number()
-        ctx["obfuscated_phone_number"] = self.obfuscate_phone_number()
-        ctx["email"] = self.email
-        ctx["obfuscated_email"] = self.obfuscate_email()
-
-        return ctx
-
-    def e164_phone_number(self):
-        if not self.phone_number:
-            return None
-
-        return phonenumbers.format_number(
-            self.phone_number,
-            phonenumbers.PhoneNumberFormat.E164
-        )
-
-    def formatted_phone_number(self):
-        if not self.phone_number:
-            return None
-
-        return phonenumbers.format_number(
-            self.phone_number,
-            phonenumbers.PhoneNumberFormat.NATIONAL
-        )
-
-    def obfuscate_email(self):
-        if not self.email:
-            return None
-
-        if not re.fullmatch(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", self.email):
-            return None
-
-        email_parts = self.email.split("@")
-        u = email_parts[0]
-        d = email_parts[1]
-        dl = len(d) - len(d.split(".")[-1]) - 2
-        e = ""
-        for x, c in enumerate(u):
-            if x < 1:
-                e += c
-            else:
-                if c.isalnum():
-                    e += "X"
-                else:
-                    e += c
-        e += "@"
-        for x, c in enumerate(d):
-            if x < 1 or x > dl:
-                e += c
-            else:
-                if c.isalnum():
-                    e += "X"
-                else:
-                    e += c
-        return e
-
-    def obfuscate_phone_number(self):
-        if not self.phone_number:
-            return None
-
-        obfuscate_number = get_setting(
-            "OBFUSCATE",
-            default=True
-        )
-
-        if not obfuscate_number:
-            return self.formatted_phone_number()
-
-        n = ""
-
-        phone_number = phonenumbers.format_number(
-            self.phone_number,
-            phonenumbers.PhoneNumberFormat.NATIONAL
-        )
-
-        for c in phone_number:
-            if c.isdigit():
-                n += "X"
-            else:
-                n += c
-
-        return n[:-4] + self.e164_phone_number()[-4:]
-
-    def build_2fa_obj(self):
-        return TwoFA(
-            phone_number=self.phone_number,
-            method=self.get_session_value(SESSION_METHOD),
-            twilio_sid=self.get_session_value(SESSION_SID),
-            attempts=self.get_session_value(SESSION_ATTEMPTS, 0)
-        )
-
-    def update_verification_status(self, status):
-        twilio_sid = self.get_session_value(SESSION_SID)
-
-        if not twilio_sid:
-            return True
-
-        twilio_2fa_verification_status_changed.send(
-            sender=None,
-            request=self.request,
-            user=self.request.user,
-            status=status,
-            twofa=self.build_2fa_obj()
-        )
-
-        try:
-            (get_twilio_client().verify
-                .services(get_setting("SERVICE_ID"))
-                .verifications(twilio_sid)
-                .update(status=status)
-             )
-        except TwilioRestException as e:
-            return self.handle_twilio_exception(e)
-
-        return True
-
-    def approve_verification(self):
-        return self.update_verification_status("approved")
-
-    def cancel_verification(self):
-        return self.update_verification_status("canceled")
 
 
 class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
@@ -462,44 +86,19 @@ class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
         return ctx
 
     def form_valid(self, form):
-        phone_number = form.cleaned_data.get("phone_number")
-        phone_carrier_type = form.cleaned_data.get("phone_carrier_type")
+        cleaned_data = form.cleaned_data
 
-        # This callback should return True or an error message
-        updated = get_setting(
-            "REGISTER_CB",
-            callback_kwargs={
-                "user": self.request.user,
-                "phone_number": phonenumbers.format_number(
-                    parse_phone_number(phone_number),
-                    phonenumbers.PhoneNumberFormat.E164
-                ),
-                "phone_carrier_type": phone_carrier_type,
-            }
+        self.twofa_client.set_user_data(
+            "phone_number",
+            phone_number=cleaned_data["phone_number"],
+            country_code=cleaned_data["country_code"]
         )
-
-        if updated is not True:
-            messages.error(
-                self.request,
-                updated
-            )
-            return self.get_error_redirect(
-                can_retry=False
-            )
 
         return super().form_valid(form)
 
 
 class Twilio2FARegisterView(Twilio2FARegistrationFormView):
     template_name = "twilio_2fa/register.html"
-
-    def get(self, request, *args, **kwargs):
-        phone_number = self.get_phone_number()
-
-        if phone_number:
-            return self.get_redirect("start")
-
-        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
@@ -515,6 +114,14 @@ class Twilio2FARegisterView(Twilio2FARegistrationFormView):
 
         return ctx
 
+    def get(self, request, *args, **kwargs):
+        if self.twofa_client.get_phone_number() is not None:
+            return self.get_redirect(
+                "change"
+            )
+
+        return super().get(request, *args, **kwargs)
+
 
 class Twilio2FAChangeView(Twilio2FARegistrationFormView):
     template_name = "twilio_2fa/change.html"
@@ -522,71 +129,78 @@ class Twilio2FAChangeView(Twilio2FARegistrationFormView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        allow_change = get_setting(
-            "ALLOW_CHANGE",
-            default=False
-        )
+        self.twofa_client.is_set_data_allowed("phone_number")
 
         ctx["is_optional"] = False
         ctx["skip_href"] = None
-        ctx["can_change"] = allow_change and self.is_user_verified()
-
-        if not ctx["can_change"]:
-            messages.error(
-                self.request,
-                _("You are not allowed to make changes to your phone number.")
-            )
 
         return ctx
 
 
-class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
+class Twilio2FAStartView(Twilio2FAMixin, TemplateView):
     success_url = reverse_lazy("twilio_2fa:verify")
     template_name = "twilio_2fa/start.html"
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+
+        self.user_methods = self.twofa_client.get_verification_methods()
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["methods"] = [self.AVAILABLE_METHODS[method] for method in self.allowed_methods]
+        ctx["methods"] = self.user_methods
+        ctx["phone_number"] = self.twofa_client.get_phone_number().obfuscated if self.twofa_client.get_phone_number() else ""
+        ctx["email"] = self.twofa_client.get_email().obfuscated if self.twofa_client.get_email() else ""
 
         return ctx
 
     def get(self, request, *args, **kwargs):
-        if not len(self.allowed_methods):
-            messages.error(
-                request,
-                _("No verification method is available")
-            )
-            return self.get_error_redirect(
-                can_retry=False
+        if not self.twofa_client.get_phone_number() and (
+                not self.twofa_client.is_method_allowed("email") or conf.user_must_have_phone()
+        ):
+            return self.get_redirect(
+                "register"
             )
 
-        action = request.GET.get("action")
+        if not len(self.user_methods):
+            raise NoMethodAvailable()
 
-        if not self.phone_number:
-            return self.get_redirect("register")
+        clear_session = request.GET.get("c")
 
-        elif action and action == "retry":
-            r = self.retry_action(request, *args, **kwargs)
+        if clear_session:
+            self.twofa_client.session.clear()
 
-            if r is not None:
-                return r
+        if self.twofa_client.verification_expires_in() > 0:
+            # Verification hasn't expired
+            if self.twofa_client.can_resend_verification_in() <= 0:
+                # Resend verification
+                self.twofa_client.send_verification(
+                    self.twofa_client.session["verification_method"]
+                )
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    _("Verification has been resent")
+                )
+            else:
+                # Cooldown not met
+                messages.add_message(
+                    request,
+                    messages.WARNING,
+                    _("Please wait before resending verification")
+                )
 
-        self.clear_session()
+            return HttpResponseRedirect(
+                self.success_url
+            )
 
-        twilio_2fa_verification_start.send(
-            sender=None,
-            request=request,
-            user=request.user,
-            twofa=self.build_2fa_obj()
-        )
 
-        if len(self.allowed_methods) == 1:
+        if len(self.user_methods) == 1 and conf.send_immediately_on_single():
             # If only one option exists, we start the verification and send the user on
-            self.send_verification(
-                self.allowed_methods[0]
+            self.twofa_client.send_verification(
+                list(self.user_methods.keys())[0]
             )
-
             return HttpResponseRedirect(
                 self.success_url
             )
@@ -596,124 +210,14 @@ class Twilio2FAStartView(Twilio2FAVerificationMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         method = request.POST.get("method")
 
-        if method not in self.allowed_methods:
-            messages.error(
-                request,
-                _("The form has been tampered with. Please don't do that.")
-            )
-            return self.get(request, *args, **kwargs)
+        self.twofa_client.send_verification(method)
 
-        verification_sid = self.send_verification(
-            method
+        return HttpResponseRedirect(
+            self.success_url
         )
 
-        if isinstance(verification_sid, HttpResponseRedirect):
-            return verification_sid
-        elif verification_sid:
-            return HttpResponseRedirect(
-                self.success_url
-            )
 
-        return self.get(request, *args, **kwargs)
-
-    def retry_action(self, request, *args, **kwargs):
-        elapsed = datetime.now() - datetime.strptime(
-            self.get_session_value(SESSION_TIMESTAMP, "20000101000000"),
-            DATEFMT
-        )
-
-        min_retry_wait = get_setting(
-            "RETRY_TIME",
-            default=60 * 3
-        )
-
-        if elapsed.total_seconds() < min_retry_wait:
-            messages.warning(
-                request,
-                _(f"Please allow at least {int(round(min_retry_wait / 60, 0))} minutes before retrying.")
-            )
-            return self.get_redirect("verify")
-
-        method = self.get_session_value(SESSION_METHOD)
-
-        self.cancel_verification()
-
-        if not method:
-            return None
-
-        self.send_verification(
-            method
-        )
-
-        messages.success(
-            request,
-            _("Verification has been re-sent.")
-        )
-
-        return self.get_redirect("verify")
-
-    def send_verification(self, method):
-
-        if method in ["sms", "call", "whatsapp"]:
-            send_to = self.e164_phone_number()
-            obfuscated_value = self.obfuscate_phone_number()
-        elif method == "email":
-            send_to = self.request.user.email
-            obfuscated_value = self.obfuscate_email()
-        else:
-            messages.error(
-                self.request,
-                _("Method not yet implemented.")
-            )
-            return self.get_redirect("verify")
-
-        try:
-            verification = (get_twilio_client().verify
-                .services(get_setting("SERVICE_ID"))
-                .verifications
-                .create(
-                    to=send_to,
-                    channel=method,
-                    custom_friendly_name=get_setting(
-                        "SERVICE_NAME",
-                        callback_kwargs={
-                            "user": self.request.user,
-                            "request": self.request,
-                            "method": method,
-                            "send_to": send_to,
-                        }
-                    )
-                )
-            )
-
-            self.set_session_value(SESSION_SID, verification.sid)
-            self.set_session_value(SESSION_METHOD, method)
-            self.set_session_value(SESSION_TIMESTAMP, datetime.now())
-            self.set_session_value(SESSION_SEND_TO, send_to)
-            self.set_session_value(SESSION_OBFUSCATED_VALUE, obfuscated_value)
-
-            twilio_2fa_verification_sent.send(
-                sender=None,
-                request=self.request,
-                user=self.request.user,
-                timestamp=self.get_session_value(SESSION_TIMESTAMP),
-                twofa=self.build_2fa_obj()
-            )
-
-            return verification.sid
-        except TwilioRestException as e:
-            if e.code == 60223:
-                messages.error(
-                    self.request,
-                    _(f"Unable to verify using {self.AVAILABLE_METHODS[method]['label']} at this time. "
-                      f"Please try a different method.")
-                )
-                return self.get_redirect("start")
-
-            return self.handle_twilio_exception(e)
-
-
-class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
+class Twilio2FAVerifyView(Twilio2FAMixin, FormView):
     form_class = Twilio2FAVerifyForm
     success_url = reverse_lazy("twilio_2fa:success")
     template_name = "twilio_2fa/verify.html"
@@ -721,153 +225,69 @@ class Twilio2FAVerifyView(Twilio2FAVerificationMixin, FormView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["method"] = self.get_session_value(SESSION_METHOD)
-        ctx["obfuscated_value"] = self.get_session_value(SESSION_OBFUSCATED_VALUE)
+        ctx["method"] = self.twofa_client.session["verification_method"]
+        ctx["obfuscated_value"] = self.twofa_client.session["send_to_display"]
 
         return ctx
 
-    def handle_too_many_attempts(self):
-        self.cancel_verification()
-
-        timeout_seconds = get_setting(
-            "MAX_ATTEMPTS_TIMEOUT",
-            default=600
-        )
-
-        if timeout_seconds:
-            twilio_2fa_verification_retries_exceeded.send(
-                sender=None,
-                request=self.request,
-                user=self.request.user,
-                timeout=timeout_seconds,
-                timeout_until=datetime.now() + timedelta(seconds=int(timeout_seconds)),
-                twofa=self.build_2fa_obj()
-            )
-
-        messages.error(
-            self.request,
-            _("You have made too many attempts to verify.")
-        )
-
-        return self.get_error_redirect(
-            can_retry=True if not timeout_seconds else False
-        )
-
     def form_valid(self, form):
-        if not self.get_session_value(SESSION_SID):
-            sentry_report(
-                "Twilio session values lost",
-                request=self.request
-            )
+        cleaned_data = form.cleaned_data
 
-        to = self.get_session_value(SESSION_SEND_TO)
+        verified = self.twofa_client.check_verification(
+            code=cleaned_data["token"]
+        )
 
-        if not to:
-            to = self.get_session_value(SESSION_SID)
-
-        if not to:
-            messages.error(
-                self.request,
-                _("Unable to verify your token at this time")
+        if not verified:
+            form.add_error(
+                None,
+                _("Your verification code is not correct")
             )
             return super().form_invalid(form)
 
-        try:
-            verify = (get_twilio_client().verify
-                .services(get_setting("SERVICE_ID"))
-                .verification_checks
-                .create(
-                    to=to,
-                    code=form.cleaned_data.get("token")
-                )
-            )
-        except TwilioRestException as e:
-            if e.code == 60202:
-                # Max tries
-                return self.handle_too_many_attempts()
-
-            return self.handle_twilio_exception(e)
-
-        max_attempts = int(get_setting(
-            "MAX_ATTEMPTS",
-            default=5,
-            callback_kwargs={
-                "user": self.request.user
-            }
-        ))
-
-        current_attempts = self.set_session_value(
-            SESSION_ATTEMPTS,
-            self.get_session_value(SESSION_ATTEMPTS, 0) + 1
-        )
-
-        if current_attempts >= max_attempts:
-            return self.handle_too_many_attempts()
-
-        if verify.status == "approved":
-            # Send this signal manually
-            twilio_2fa_verification_status_changed.send(
-                sender=None,
-                request=self.request,
-                user=self.request.user,
-                status=verify.status,
-                twofa=self.build_2fa_obj()
-            )
-
-            twilio_2fa_verification_success.send(
-                sender=None,
-                request=self.request,
-                user=self.request.user,
-                twofa=self.build_2fa_obj()
-            )
-
-            return super().form_valid(form)
-
-        messages.error(
-            self.request,
-            _("Verification code was invalid")
-        )
-
-        return super().form_invalid(form)
+        return super().form_valid(form)
 
 
 class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
     template_name = "twilio_2fa/success.html"
 
     def get(self, request, *args, **kwargs):
-        next_url = self.get_session_value(
-            SESSION_NEXT_URL
-        )
-
-        if next_url:
-            return HttpResponseRedirect(
-                next_url
+        success_redirect_url = request.session.get(
+            conf.next_session_key(),
+            conf.success_redirect_url(
+                user=self.twofa_client.get_user()
             )
-
-        verify_success_url = get_setting(
-            "VERIFY_SUCCESS_URL"
         )
 
-        self.clear_session()
-
-        if verify_success_url:
+        if success_redirect_url:
             return HttpResponseRedirect(
-                verify_success_url
+                success_redirect_url
             )
 
         return super().get(request, *args, **kwargs)
 
 
-class Twilio2FAFailedView(Twilio2FAMixin, TemplateView):
+class Twilio2FAFailedView(TemplateView):
     template_name = "twilio_2fa/failed.html"
+
+    def setup(self, request, *args, **kwargs):
+        super().setup(request, *args, **kwargs)
+
+        error = json.loads(urlsafe_b64decode(request.GET.get("e")).decode())
+
+        self.error_code = error.get("error_code", "")
+        self.error_display = error.get("display", conf.default_error_display())
+        self.verification_id = request.GET.get("v")
+
+        self.error_blocking = error.get("blocking", False)
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
 
-        ctx["can_retry"] = self.get_session_value(SESSION_CAN_RETRY, False)
-
-        if settings.DEBUG and "retry" in self.request.GET:
-            ctx["can_retry"] = bool(int(self.request.GET.get("retry", 0)))
+        ctx.update({
+            "error_code": self.error_code,
+            "error_display": self.error_display,
+            "is_blocking": self.error_blocking,
+            "verification_id": self.verification_id
+        })
 
         return ctx
-

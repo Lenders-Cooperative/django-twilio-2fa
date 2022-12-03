@@ -1,25 +1,37 @@
 from django import forms
-from .utils import country_code_choices, verify_phone_number
+import pycountry
+from .client import TwoFAClient
+from .app_settings import conf
 
 
 __all__ = [
-    "Twilio2FARegistrationForm", "Twilio2FAVerifyForm",
+    "Twilio2FARegistrationForm", "Twilio2FAVerifyForm", "CountryCodeField",
 ]
 
 
+class CountryCodeField(forms.ChoiceField):
+    def __init__(self, *args, **kwargs):
+        kwargs["choices"] = [
+            ("", "--"),
+        ]
+
+        country_codes = list(set(conf.allowed_countries()) - set(conf.disallowed_countries()))
+        country_codes.sort()
+
+        for c in country_codes:
+            country = pycountry.countries.get(alpha_2=c)
+
+            if country:
+                kwargs["choices"].append((c, country.name))
+            else:
+                raise ValueError(f"{c} is not a valid alpha_2 country code")
+
+        super().__init__(*args, **kwargs)
+
+
 class Twilio2FARegistrationForm(forms.Form):
-    country_code = forms.ChoiceField(choices=country_code_choices())
+    country_code = CountryCodeField()
     phone_number = forms.CharField()
-
-    def clean_phone_number(self):
-        phone = self.cleaned_data["phone_number"]
-        country = self.cleaned_data["country_code"]
-        transtab = str.maketrans("", "", "()-. _")
-        phone.translate(transtab)
-
-        verify_phone_number(phone, country, do_lookup=True)
-
-        return phone
 
 
 class Twilio2FAVerifyForm(forms.Form):
