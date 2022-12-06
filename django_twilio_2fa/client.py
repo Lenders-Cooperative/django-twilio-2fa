@@ -74,7 +74,7 @@ class TwoFAClient(object):
                     return
             
             query_param = conf.unauthenticated_query_param()
-            user_id = self.request.GET.get(query_param)
+            user_id = self.request.data.get(query_param)
             user_field = conf.unauthenticated_user_field()
 
             if not user_id:

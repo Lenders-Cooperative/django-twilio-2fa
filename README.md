@@ -198,6 +198,7 @@ To run tests, run `python manage.py test` from the `test_app` directory.
 
 ### Changelog
 
+* 0.25 - bug fix for handling unauthenticated users
 * 0.24 - refactored to abstract process; added API endpoints; allow for userless 2FA
 * 0.23 - Twilio rate limiting error handling
 * 0.22 - Added internationalization and e-mail verification (thanks to [jgoodsell-summitgrp](https://github.com/jgoodsell-summitgrp))
