@@ -201,3 +201,14 @@ class ChangeNotAllowed(Error):
 class RegistrationNotAllowed(Error):
     code = "registration_not_allowed"
     display = _("You cannot set your 2FA {field_display}")
+
+
+class TwilioInvalidParameter(Error):
+    code = "twilio_invalid_parameter_{parameter}"
+    status_code = 400
+    blocking = False
+
+
+class InvalidVerificationCode(TwilioInvalidParameter):
+    code = "invalid_verification_code"
+    display = _("Verification code is invalid")

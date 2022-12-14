@@ -382,6 +382,12 @@ class TwoFAClient(object):
         elif exc.code == 60223:
             # Method not allowed
             raise MethodNotAllowed()
+        elif exc.code == 60200:
+            # Invalid Parameter
+            if "Code" in exc.msg:
+                raise InvalidVerificationCode()
+            else:
+                raise TwilioInvalidParameter(parameter=exc.msg.split(": ")[1])
         else:
             logger.exception(exc)
             raise GenericTwilioError(

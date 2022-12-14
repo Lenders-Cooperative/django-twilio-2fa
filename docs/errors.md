@@ -63,6 +63,14 @@ When using the API endpoints, errors are returned as a JSON object:
 * **Should block further attempts?** No
 
 
+## `InvalidVerificationCode`
+
+* **Error code:** `invalid_verification_code`
+* **Display for user:** `Verification code is invalid`
+* **Status Code:** `400`
+* **Should block further attempts?** No
+
+
 ## `MalformedRequest`
 
 * **Error code:** `malformed_request`
@@ -151,6 +159,14 @@ When using the API endpoints, errors are returned as a JSON object:
 * **Should block further attempts?** No
 
 
+## `TwilioInvalidParameter`
+
+* **Error code:** `twilio_invalid_parameter_{parameter}`
+* **Display for user:** `Unable to verify at this time`
+* **Status Code:** `400`
+* **Should block further attempts?** No
+
+
 ## `TwilioRateLimited`
 
 * **Error code:** `twilio_rate_limited`
@@ -184,8 +200,6 @@ When using the API endpoints, errors are returned as a JSON object:
 
 
 ## `UserNotAllowed`
-
-User is not allowed to verify
 
 * **Error code:** `user_not_allowed`
 * **Display for user:** `You are not allowed to verify at this time`

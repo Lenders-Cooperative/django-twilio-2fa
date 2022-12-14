@@ -198,6 +198,7 @@ To run tests, run `python manage.py test` from the `test_app` directory.
 
 ### Changelog
 
+* 0.26 - added handling of Twilio Error 60200
 * 0.25 - bug fix for handling unauthenticated users
 * 0.24 - refactored to abstract process; added API endpoints; allow for userless 2FA
 * 0.23 - Twilio rate limiting error handling
