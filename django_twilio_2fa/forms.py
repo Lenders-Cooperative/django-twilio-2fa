@@ -1,6 +1,7 @@
 from django import forms
 import pycountry
-from .client import TwoFAClient
+
+from . import errors
 from .app_settings import conf
 
 
@@ -38,3 +39,9 @@ class Twilio2FAVerifyForm(forms.Form):
     token = forms.CharField(
         required=True
     )
+
+    def clean_token(self):
+        token = self.cleaned_data["token"]
+
+        if len(str(token)) != conf.token_length and not str(token).isnumeric():
+            raise errors.InvalidVerificationCode()
