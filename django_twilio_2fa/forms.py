@@ -1,7 +1,7 @@
 from django import forms
+from django.core.exceptions import ValidationError
 import pycountry
 
-from . import errors
 from .app_settings import conf
 
 
@@ -44,4 +44,6 @@ class Twilio2FAVerifyForm(forms.Form):
         token = self.cleaned_data["token"]
 
         if len(str(token)) != conf.token_length and not str(token).isnumeric():
-            raise errors.InvalidVerificationCode()
+            raise ValidationError(f"Please provide a valid {conf.token_length} digit token")
+
+        return token
