@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from ..app_settings import conf
 from ..client import TwoFAClient
-from ..errors import *
+from .. import errors
 from .serializers import VerificationSerializer, CheckSerializer
 
 
@@ -53,7 +53,7 @@ class BaseView(APIView):
 
         try:
             return self.do_post()
-        except Error as e:
+        except errors.Error as e:
             return self._get_response(
                 e.get_json(),
                 status_code=e.status_code
@@ -94,7 +94,7 @@ class SendView(BaseView):
         email = self.request.data.get("email")
 
         if self.twofa_client.get_user() and not self.twofa_client.get_phone_number() and conf.user_must_have_phone():
-            raise PhoneNumberNotSet()
+            raise errors.PhoneNumberNotSet()
 
         if not self.twofa_client.get_user():
             if phone_number or phone_country:
@@ -125,9 +125,12 @@ class VerifyView(BaseView):
         code = self.request.data.get("code")
 
         if not code:
-            raise MalformedRequest(
+            raise errors.MalformedRequest(
                 missing_field="code"
             )
+
+        if len(str(code)) != conf.token_length and not str(code).isnumeric():
+            raise errors.InvalidVerificationCode()
 
         verified = self.twofa_client.check_verification(
             verification_sid=verification_id,

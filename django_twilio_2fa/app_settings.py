@@ -30,7 +30,7 @@ class MissingRequiredSetting(SettingError):
 DJ_SETTING_PREFIX = "TWILIO_2FA"
 
 
-class Constant(object):
+class Constant:
     def __init__(self, value, description=None):
         self.value = value
         self.description = description or ""
@@ -39,7 +39,7 @@ class Constant(object):
         return self.value
 
 
-class Setting(object):
+class Setting:
     def __init__(
             self,
             key,
@@ -99,7 +99,7 @@ class Setting(object):
         return value
 
 
-class Conf(object):
+class Conf:
     available_methods = Constant({
         "sms": {
             "value": "sms",
@@ -421,6 +421,16 @@ class Conf(object):
          * `throttle`
         
         (Only applicable to API-based 2FA.)
+        """
+    )
+
+    token_length = Setting(
+        "token_length",
+        default=6,
+        description="""
+        The length of the token expected from the user.
+
+        This is used for validation before sending to the verify API.  Defaults to 6.
         """
     )
 
