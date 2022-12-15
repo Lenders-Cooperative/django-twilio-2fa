@@ -124,12 +124,15 @@ class VerifyView(BaseView):
         verification_id = self.request.data.get("verification_id")
         code = self.request.data.get("code")
 
+        # FIXME - once a user has reached the max attempts, we should stop them here, and not do any further validations
+
         if not code:
             raise errors.MalformedRequest(
                 missing_field="code"
             )
 
-        if len(str(code)) != conf.token_length and not str(code).isnumeric():
+        if len(str(code)) != conf.token_length or not str(code).isnumeric():
+            # TODO - make sure this matches what would return if the user sent an invalid token of the correct length
             raise errors.InvalidVerificationCode()
 
         verified = self.twofa_client.check_verification(
