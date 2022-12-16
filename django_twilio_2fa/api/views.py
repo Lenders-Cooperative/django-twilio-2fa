@@ -131,7 +131,7 @@ class VerifyView(BaseView):
                 missing_field="code"
             )
 
-        if len(str(code)) != conf.token_length or not str(code).isnumeric():
+        if len(str(code)) != conf.token_length() or not str(code).isnumeric():
             # TODO - make sure this matches what would return if the user sent an invalid token of the correct length
             raise errors.InvalidVerificationCode()
 

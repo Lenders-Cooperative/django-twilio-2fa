@@ -43,7 +43,7 @@ class Twilio2FAVerifyForm(forms.Form):
     def clean_token(self):
         token = self.cleaned_data["token"]
 
-        if len(str(token)) != conf.token_length or not str(token).isnumeric():
-            raise ValidationError(f"Please provide a valid {conf.token_length} digit token")
+        if len(str(token)) != conf.token_length() or not str(token).isnumeric():
+            raise ValidationError(f"Please provide a valid {conf.token_length()} digit token")
 
         return token
