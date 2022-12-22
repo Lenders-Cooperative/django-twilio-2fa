@@ -26,7 +26,7 @@ def get_error_details():
 class Error(Exception):
     code = None
     display = None
-    status_code = 500
+    status_code = 400
     blocking = False
 
     def __init__(self, display=None, **data):
