@@ -100,17 +100,16 @@ class SendView(BaseView):
         if self.twofa_client.get_user() and not self.twofa_client.get_phone_number() and conf.user_must_have_phone():
             raise errors.PhoneNumberNotSet()
 
-        if not self.twofa_client.get_user():
-            if phone_number or phone_country:
-                self.twofa_client.set_phone_number(
-                    phone_number=phone_number,
-                    country_code=phone_country
-                )
+        if phone_number or phone_country:
+            self.twofa_client.set_phone_number(
+                phone_number=phone_number,
+                country_code=phone_country
+            )
 
-            if email:
-                self.twofa_client.set_email(
-                    email=email
-                )
+        if email:
+            self.twofa_client.set_email(
+                email=email
+            )
 
         verification_sid = self.twofa_client.send_verification(
             method
