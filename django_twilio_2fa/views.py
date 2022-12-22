@@ -7,12 +7,12 @@ from django.contrib import messages
 from django.views.generic import FormView, TemplateView
 from django.urls import reverse_lazy, reverse
 from django.http import HttpResponseRedirect
-import phonenumbers
-from .forms import *
-from .utils import *
 
+from . import errors, forms
+from .app_settings import conf
 from .client import TwoFAClient
-from .errors import *
+from .utils import get_setting, URL_PREFIX
+
 
 
 __all__ = [
@@ -24,7 +24,7 @@ __all__ = [
 logger = logging.getLogger("django_twilio_2fa")
 
 
-class Twilio2FAMixin(object):
+class Twilio2FAMixin:
     def setup(self, request, *args, **kwargs):
         super().setup(request, *args, **kwargs)
 
@@ -38,7 +38,7 @@ class Twilio2FAMixin(object):
     def dispatch(self, request, *args, **kwargs):
         try:
             return super().dispatch(request, *args, **kwargs)
-        except Error as e:
+        except errors.Error as e:
             error = e.get_json()
             del error["data"]  # Remove data for security
             error = json.dumps(error)
@@ -67,7 +67,7 @@ class Twilio2FAMixin(object):
 
 
 class Twilio2FARegistrationFormView(Twilio2FAMixin, FormView):
-    form_class = Twilio2FARegistrationForm
+    form_class = forms.Twilio2FARegistrationForm
     success_url = reverse_lazy("twilio_2fa:start")
     template_name = "twilio_2fa/register.html"
 
@@ -164,7 +164,7 @@ class Twilio2FAStartView(Twilio2FAMixin, TemplateView):
             )
 
         if not len(self.user_methods):
-            raise NoMethodAvailable()
+            raise errors.NoMethodAvailable()
 
         clear_session = request.GET.get("c")
 
@@ -218,7 +218,7 @@ class Twilio2FAStartView(Twilio2FAMixin, TemplateView):
 
 
 class Twilio2FAVerifyView(Twilio2FAMixin, FormView):
-    form_class = Twilio2FAVerifyForm
+    form_class = forms.Twilio2FAVerifyForm
     success_url = reverse_lazy("twilio_2fa:success")
     template_name = "twilio_2fa/verify.html"
 

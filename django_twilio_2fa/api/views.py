@@ -49,38 +49,42 @@ class BaseView(APIView):
         return self._get_response(payload)
 
     def post(self, request, *args, **kwargs):
-        self.twofa_client = TwoFAClient(request=self.request)
-
         try:
-            return self.do_post()
-        except errors.Error as e:
-            return self._get_response(
-                e.get_json(),
-                status_code=e.status_code
-            )
+            self.twofa_client = TwoFAClient(request=self.request)
+
+            try:
+                return self.do_post()
+            except errors.Error as e:
+                return self._get_response(
+                    e.get_json(),
+                    status_code=e.status_code
+                )
+        except Exception:
+            return Response({"success": False}, status=400)
 
 
 class SetPhoneNumberView(BaseView):
     def do_post(self):
-        self.twofa_client.set_user_data(
-            "phone_number",
-            phone_number=self.request.data.get("phone_number"),
-            country_code=self.request.data.get("country_code")
-        )
-        return Response({
-            "success": True
-        })
+        try:
+            self.twofa_client.set_user_data(
+                "phone_number",
+                phone_number=self.request.data.get("phone_number"),
+                country_code=self.request.data.get("country_code")
+            )
+            return Response({
+                "success": True
+            })
+        except Exception:
+            return Response({"success": False}, status=400)
 
 
 class SetEmailView(BaseView):
     def do_post(self):
-        self.twofa_client.set_user_data(
-            "email",
-            email=self.request.data.get("email")
-        )
-        return Response({
-            "success": True
-        })
+        try:
+            self.twofa_client.set_user_data("email", email=self.request.data.get("email"))
+            return Response({"success": True})
+        except Exception:
+            return Response({"success": False}, status=400)
 
 
 class SendView(BaseView):
@@ -158,17 +162,19 @@ class CancelView(BaseView):
 
 class MethodsView(BaseView):
     def do_post(self):
-        methods = self.twofa_client.get_verification_methods()
+        try:
+            methods = self.twofa_client.get_verification_methods()
 
-        for key in ["sms", "call"]:
-            if key not in methods:
-                continue
+            for key in ["sms", "call"]:
+                if key not in methods:
+                    continue
 
-            methods[key]["obfuscated"] = self.twofa_client.get_phone_number().obfuscated
+                methods[key]["obfuscated"] = self.twofa_client.get_phone_number().obfuscated
 
-        if "email" in methods:
-            methods["email"]["obfuscated"] = self.twofa_client.get_email().obfuscated
+            if "email" in methods:
+                methods["email"]["obfuscated"] = self.twofa_client.get_email().obfuscated
 
-        return Response({
-            "verification_methods": methods
-        })
+            return Response({"verification_methods": methods})
+
+        except Exception:
+            return Response({"verification_methods": []}, status=400)
