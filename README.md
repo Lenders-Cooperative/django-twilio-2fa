@@ -198,6 +198,8 @@ To run tests, run `python manage.py test` from the `test_app` directory.
 
 ### Changelog
 
+* 0.29 - downgraded requirements for inclusivity
+* 0.28 - added better customization of user messaging
 * 0.27 - allow sending verifications to different values; set default status code for errors to 400
 * 0.26 - added handling of Twilio Error 60200
 * 0.25 - bug fix for handling unauthenticated users
