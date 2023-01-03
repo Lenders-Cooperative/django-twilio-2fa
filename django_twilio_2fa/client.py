@@ -61,7 +61,7 @@ class TwoFAClient(object):
 
         if user:
             self.user = user
-        elif self.request.user.is_authenticated:
+        elif self.request and self.request.user.is_authenticated:
             self.user = self.request.user
         elif not conf.allow_unauthenticated_users():
             raise UserUnauthenticated()
@@ -357,6 +357,12 @@ class TwoFAClient(object):
             value=value
         )
 
+    def get_message(self, code):
+        messages = {
+            "verification_resent": _("Verification has been resent")
+        }
+        return conf.message_displays(code=code, default=messages.get(code, ""))
+
     #
     # Twilio calls
 
@@ -442,7 +448,9 @@ class TwoFAClient(object):
 
         if self.verification_expires_in() > 0 < self.can_resend_verification_in():
             # Resend verification attempt before cooldown ends
-            raise SendCooldown()
+            raise SendCooldown(
+                can_resend_in=self.can_resend_verification_in()
+            )
 
         try:
             verification = (get_twilio_client().verify

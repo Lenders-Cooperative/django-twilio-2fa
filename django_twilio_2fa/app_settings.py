@@ -176,6 +176,19 @@ class Conf:
         The [error code](errors.md) is sent and the string or gettext_lazy 
         """
     )
+    message_displays = Setting(
+        "message_display",
+        must_be_callable=True,
+        cb_kwargs_required=["code"],
+        description="""
+        Allows for overriding non-error messages displayed to user.
+        
+        The message code is sent and the string or gettext_lazy instance is returned.
+        
+        Message codes and default messages:
+         * `verification_resent` - Verification has been resent
+        """
+    )
     allow_userless = Setting(
         "allow_userless",
         default=False,

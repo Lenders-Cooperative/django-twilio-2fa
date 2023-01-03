@@ -27,7 +27,7 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `change_not_allowed`
 * **Display for user:** `You cannot change your {field_display}`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** No
 
 
@@ -35,7 +35,7 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `email_not_set`
 * **Display for user:** `An e-mail address is not set for your account.`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** No
 
 
@@ -43,7 +43,7 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `twilio_error_{twilio_error}`
 * **Display for user:** `Unable to verify at this time`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** No
 
 
@@ -123,7 +123,7 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `no_method_available`
 * **Display for user:** `No method available for verification`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** Yes
 
 
@@ -139,7 +139,7 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `phone_not_set`
 * **Display for user:** `A phone number is not set for your account.`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** No
 
 
@@ -147,15 +147,15 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `registration_not_allowed`
 * **Display for user:** `You cannot set your 2FA {field_display}`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** No
 
 
 ## `SendCooldown`
 
 * **Error code:** `resend_cooldown`
-* **Display for user:** `Please wait before resending your verification`
-* **Status Code:** `500`
+* **Display for user:** `Please wait at least {can_resend_in} seconds before resending your verification`
+* **Status Code:** `400`
 * **Should block further attempts?** No
 
 
@@ -171,7 +171,7 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `twilio_rate_limited`
 * **Display for user:** `Unable to verify at this time`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** No
 
 
@@ -179,7 +179,7 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `unauthenticated_user_field_missing`
 * **Display for user:** `Unable to verify at this time`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** No
 
 
@@ -219,7 +219,7 @@ When using the API endpoints, errors are returned as a JSON object:
 
 * **Error code:** `user_required`
 * **Display for user:** `A user is required for 2FA`
-* **Status Code:** `500`
+* **Status Code:** `400`
 * **Should block further attempts?** Yes
 
 
