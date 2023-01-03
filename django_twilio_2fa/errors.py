@@ -156,7 +156,7 @@ class MobileNumberRequired(Error):
 
 class SendCooldown(Error):
     code = "resend_cooldown"
-    display = _("Please wait before resending your verification")
+    display = _("Please wait at least {can_resend_in} seconds before resending your verification")
 
 
 class EmailNotSet(Error):

@@ -172,29 +172,32 @@ class Twilio2FAStartView(Twilio2FAMixin, TemplateView):
             self.twofa_client.session.clear()
 
         if self.twofa_client.verification_expires_in() > 0:
-            # Verification hasn't expired
-            if self.twofa_client.can_resend_verification_in() <= 0:
-                # Resend verification
+            # Verification hasn't expired or been canceled, so this is a resend
+            try:
                 self.twofa_client.send_verification(
                     self.twofa_client.session["verification_method"]
                 )
                 messages.add_message(
                     request,
                     messages.SUCCESS,
-                    _("Verification has been resent")
+                    self.twofa_client.get_message("verification_resent")
                 )
-            else:
-                # Cooldown not met
+            except errors.SendCooldown as exc:
                 messages.add_message(
                     request,
                     messages.WARNING,
-                    _("Please wait before resending verification")
+                    exc.get_display()
+                )
+            except errors.Error as exc:
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    exc.get_display()
                 )
 
             return HttpResponseRedirect(
                 self.success_url
             )
-
 
         if len(self.user_methods) == 1 and conf.send_immediately_on_single():
             # If only one option exists, we start the verification and send the user on

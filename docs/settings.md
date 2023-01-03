@@ -162,6 +162,22 @@ Maximum number of sends (configurable through Twilio)
 Defaults to: `5`
 
 
+### `MESSAGE_DISPLAY_CB`
+_This setting must be a callable._
+
+Allows for overriding non-error messages displayed to user.
+
+The message code is sent and the string or gettext_lazy instance is returned.
+
+Message codes and default messages:
+* `verification_resent` - Verification has been resent
+
+Defaults to: `None`
+
+If callable, the following kwargs are sent:
+ * `code`
+
+
 ### `METHOD_DETAILS`
 
 Allows overriding a verification method's details like icon and display text.
@@ -274,6 +290,15 @@ Defaults to: `None`
 
 If callable, the following kwargs are sent:
  * `user`
+
+
+### `TOKEN_LENGTH`
+
+The length of the token expected from the user.
+
+This is used for validation before sending to the verify API.Defaults to 6.
+
+Defaults to: `6`
 
 
 ### `UNAUTHENTICATED_QUERY_PARAM`
