@@ -231,6 +231,14 @@ When using the API endpoints, errors are returned as a JSON object:
 * **Should block further attempts?** No
 
 
+## `VerificationExpired`
+
+* **Error code:** `verification_expired`
+* **Display for user:** `Your verification has expired`
+* **Status Code:** `400`
+* **Should block further attempts?** No
+
+
 ## `VerificationNotFound`
 
 * **Error code:** `verification_not_found`

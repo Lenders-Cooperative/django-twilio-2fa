@@ -219,3 +219,8 @@ class InvalidVerificationCodeLength(InvalidVerificationCode):
 
 class InvalidVerificationCodeNumeric(InvalidVerificationCode):
     display = _("Verification code must be numeric")
+
+
+class VerificationExpired(Error):
+    code = "verification_expired"
+    display = _("Your verification has expired")

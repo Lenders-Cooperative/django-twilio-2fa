@@ -508,6 +508,15 @@ class TwoFAClient(object):
         if not str(code).isnumeric():
             raise InvalidVerificationCodeNumeric()
 
+        # Check attempts threshold
+        # (We want Twilio to handle checks until max attempts is reached so the verification shows max attempts in logs)
+        if self.session["attempts"] > conf.max_attempts():
+            raise MaxAttemptsReached()
+
+        # Check expiration to prevent verification_not_found error
+        if self.verification_expires_in() < 0:
+            raise VerificationExpired()
+
         try:
             verification = (get_twilio_client().verify
                 .services(conf.twilio_service_id())
