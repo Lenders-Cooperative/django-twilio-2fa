@@ -198,6 +198,7 @@ To run tests, run `python manage.py test` from the `test_app` directory.
 
 ### Changelog
 
+* 0.30 - added more messages for user displays; updated view-based templates to use messages; added `display` key to API-based responses
 * 0.29 - downgraded requirements for inclusivity
 * 0.28 - added better customization of user messaging
 * 0.27 - allow sending verifications to different values; set default status code for errors to 400
