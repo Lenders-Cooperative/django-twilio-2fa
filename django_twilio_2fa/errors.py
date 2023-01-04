@@ -206,9 +206,16 @@ class RegistrationNotAllowed(Error):
 class TwilioInvalidParameter(Error):
     code = "twilio_invalid_parameter_{parameter}"
     status_code = 400
-    blocking = False
 
 
-class InvalidVerificationCode(TwilioInvalidParameter):
+class InvalidVerificationCode(Error):
     code = "invalid_verification_code"
     display = _("Verification code is invalid")
+
+
+class InvalidVerificationCodeLength(InvalidVerificationCode):
+    display = _("Verification code must be {length} characters")
+
+
+class InvalidVerificationCodeNumeric(InvalidVerificationCode):
+    display = _("Verification code must be numeric")

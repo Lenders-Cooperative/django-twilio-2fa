@@ -500,6 +500,14 @@ class TwoFAClient(object):
     def check_verification(self, code, verification_sid=None):
         verification_sid = self.get_verification_sid(verification_sid)
 
+        # Validate the verification code length
+        if len(str(code)) != conf.token_length():
+            raise InvalidVerificationCodeLength(length=conf.token_length())
+
+        # Validate the verification code is numeric
+        if not str(code).isnumeric():
+            raise InvalidVerificationCodeNumeric()
+
         try:
             verification = (get_twilio_client().verify
                 .services(conf.twilio_service_id())
