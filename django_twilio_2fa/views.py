@@ -230,6 +230,7 @@ class Twilio2FAVerifyView(Twilio2FAMixin, FormView):
 
         ctx["method"] = self.twofa_client.session["verification_method"]
         ctx["obfuscated_value"] = self.twofa_client.session["send_to_display"]
+        ctx["message"] = self.twofa_client.get_send_message(self.twofa_client.session["verification_method"])
 
         return ctx
 
@@ -243,7 +244,7 @@ class Twilio2FAVerifyView(Twilio2FAMixin, FormView):
         if not verified:
             form.add_error(
                 None,
-                _("Your verification code is not correct")
+                self.twofa_client.get_message("incorrect_code")
             )
             return super().form_invalid(form)
 
@@ -252,6 +253,13 @@ class Twilio2FAVerifyView(Twilio2FAMixin, FormView):
 
 class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
     template_name = "twilio_2fa/success.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        ctx["message"] = self.twofa_client.get_message("verified")
+
+        return ctx
 
     def get(self, request, *args, **kwargs):
         success_redirect_url = request.session.get(
