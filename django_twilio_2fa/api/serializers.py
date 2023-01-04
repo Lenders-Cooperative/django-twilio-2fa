@@ -10,7 +10,9 @@ class BaseSerializer(serializers.Serializer):
 
 class VerificationSerializer(BaseSerializer):
     verification_id = serializers.CharField()
+    display = serializers.CharField()
 
 
 class CheckSerializer(BaseSerializer):
     verified = serializers.BooleanField()
+    display = serializers.CharField()

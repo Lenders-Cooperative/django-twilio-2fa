@@ -4,15 +4,7 @@
 {% block content %}
     <form class="form" method="post">
         <div class="row mb-3">
-            <div class="col-12 text-center">
-                    Please enter the token we
-                    {% if method == "sms" %}text to you
-                    {% elif method == "call" %}called you with
-                    {% elif method == "email" %}e-mailed to you
-                    {% elif method == "whatsapp" %}sent to you in WhatsApp
-                    {% else %}sent to you{% endif %}
-                    at <br><strong>{{ obfuscated_value }}</strong><br>in the field below.
-            </div>
+            <div class="col-12 text-center">{{ message }}</div>
         </div>
         {% include "twilio_2fa/_messages.html" %}
         {% if form.non_field_errors %}

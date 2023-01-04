@@ -359,9 +359,31 @@ class TwoFAClient(object):
 
     def get_message(self, code):
         messages = {
-            "verification_resent": _("Verification has been resent")
+            "verification_resent": _("Verification has been resent"),
+            "verified": _("Your verification was successful"),
+            "incorrect_code": _("Your verification code was incorrect"),
+            "send_prefix": _("Please enter the token we"),
+            "send_suffix": _("at {value} in the field below"),
+            "send_sms": _("text to you"),
+            "send_call": _("called you with"),
+            "send_email": _("e-mailed to you"),
+            "send_whatsapp": _("sent to you in WhatsApp"),
+            "send_generic": _("sent to you"),
         }
         return conf.message_displays(code=code, default=messages.get(code, ""))
+
+    def get_send_message(self, method):
+        message = self.get_message("send_prefix") + " "
+
+        method_message = self.get_message(f"send_{method}")
+
+        if method_message == "":
+            method_message = self.get_message("send_generic")
+
+        message += method_message + " "
+        message += self.get_message("send_suffix").format(value=self.session["send_to_display"])
+
+        return message
 
     #
     # Twilio calls

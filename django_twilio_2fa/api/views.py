@@ -119,7 +119,8 @@ class SendView(BaseView):
         )
 
         return self.get_serialized_response(
-            verification_id=verification_sid
+            verification_id=verification_sid,
+            display=self.twofa_client.get_send_message(method)
         )
 
 
@@ -130,20 +131,27 @@ class VerifyView(BaseView):
         verification_id = self.request.data.get("verification_id")
         code = self.request.data.get("code")
 
-        # FIXME - once a user has reached the max attempts, we should stop them here, and not do any further validations
-
         if not code:
             raise errors.MalformedRequest(
                 missing_field="code"
             )
+
+        # Max attempts, code validation, and expiration checks happen in check_verification
+        # to maintain consistency
 
         verified = self.twofa_client.check_verification(
             verification_sid=verification_id,
             code=code
         )
 
+        if verified:
+            display = self.twofa_client.get_message("verified")
+        else:
+            display = self.twofa_client.get_message("incorrect_code")
+
         return self.get_serialized_response(
-            verified=verified
+            verified=verified,
+            display=display
         )
 
 
