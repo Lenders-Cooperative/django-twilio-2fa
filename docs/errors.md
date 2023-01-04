@@ -63,10 +63,10 @@ When using the API endpoints, errors are returned as a JSON object:
 * **Should block further attempts?** No
 
 
-## `InvalidVerificationCode`
+## `InvalidVerificationCodeNumeric`
 
 * **Error code:** `invalid_verification_code`
-* **Display for user:** `Verification code is invalid`
+* **Display for user:** `Verification code must be numeric`
 * **Status Code:** `400`
 * **Should block further attempts?** No
 

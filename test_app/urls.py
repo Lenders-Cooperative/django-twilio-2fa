@@ -44,7 +44,7 @@ urlpatterns = [
         include("django_twilio_2fa.urls")
     ),
     path(
-        "api/",
+        "api/2fa/",
         include("django_twilio_2fa.api.urls")
     ),
     path(

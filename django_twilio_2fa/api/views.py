@@ -1,5 +1,7 @@
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
+
 from ..app_settings import conf
 from ..client import TwoFAClient
 from .. import errors
@@ -10,9 +12,10 @@ class BaseView(APIView):
     serializer_class = None
 
     def _get_response(self, data, status_code=200):
-        data["_debug"] = {
-            "session": self.twofa_client.session._to_dict()
-        }
+        if settings.DEBUG:
+            data["_debug"] = {
+                "session": self.twofa_client.session._to_dict()
+            }
 
         return Response(
             data,
@@ -133,10 +136,6 @@ class VerifyView(BaseView):
             raise errors.MalformedRequest(
                 missing_field="code"
             )
-
-        if len(str(code)) != conf.token_length() or not str(code).isnumeric():
-            # TODO - make sure this matches what would return if the user sent an invalid token of the correct length
-            raise errors.InvalidVerificationCode()
 
         verified = self.twofa_client.check_verification(
             verification_sid=verification_id,
