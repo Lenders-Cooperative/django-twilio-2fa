@@ -187,6 +187,15 @@ class Conf:
         
         Message codes and default messages:
          * `verification_resent` - Verification has been resent
+         * `verified` - Your verification was successful
+         * `incorrect_code` - Your verification code was incorrect
+         * `send_prefix` - Please enter the token we
+         * `send_suffix` - at {value} in the field below
+         * `send_sms` - text to you
+         * `send_call` - called you with
+         * `send_email` - e-mailed to you
+         * `send_whatsapp` - sent to you in WhatsApp
+         * `send_generic` - sent to you
         """
     )
     allow_userless = Setting(
