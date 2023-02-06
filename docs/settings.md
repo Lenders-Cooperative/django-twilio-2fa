@@ -126,17 +126,11 @@ If callable, the following kwargs are sent:
  * `user`
 
 
-### `ERROR_DISPLAY_CB`
-_This setting must be a callable._
+### `ERROR_DISPLAY`
 
 Allows overriding of error messages displayed to user.
 
-The [error code](errors.md) is sent and the string or gettext_lazy
-
 Defaults to: `{}`
-
-If callable, the following kwargs are sent:
- * `code`
 
 
 ### `HAS_CLNPC_PERMISSION`

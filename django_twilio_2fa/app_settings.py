@@ -168,13 +168,7 @@ class Conf:
     error_displays = Setting(
         "error_display",
         default=dict,
-        must_be_callable=True,
-        cb_kwargs_required=["code"],
-        description="""
-        Allows overriding of error messages displayed to user.
-        
-        The [error code](errors.md) is sent and the string or gettext_lazy 
-        """
+        description="Allows overriding of error messages displayed to user."
     )
     message_displays = Setting(
         "message_display",
