@@ -250,6 +250,12 @@ class Twilio2FAVerifyView(Twilio2FAMixin, FormView):
 
         return super().form_valid(form)
 
+    def dispatch(self, request, *args, **kwargs):
+        if not self.twofa_client.session["verification_method"]:
+            return HttpResponseRedirect(reverse("twilio_2fa:start"))
+
+        return super().dispatch(request, *args, **kwargs)
+
 
 class Twilio2FASuccessView(Twilio2FAMixin, TemplateView):
     template_name = "twilio_2fa/success.html"
