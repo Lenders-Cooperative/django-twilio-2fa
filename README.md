@@ -198,6 +198,7 @@ To run tests, run `python manage.py test` from the `test_app` directory.
 
 ### Changelog
 
+* 0.32 - bug fixes for lost users
 * 0.31 - minor fix of `error_displays` setting
 * 0.30 - added more messages for user displays; updated view-based templates to use messages; added `display` key to API-based responses
 * 0.29 - downgraded requirements for inclusivity
