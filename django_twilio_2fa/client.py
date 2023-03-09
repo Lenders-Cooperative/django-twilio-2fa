@@ -377,7 +377,7 @@ class TwoFAClient(object):
 
         method_message = self.get_message(f"send_{method}")
 
-        if method_message == "":
+        if not method_message or method_message == "":
             method_message = self.get_message("send_generic")
 
         message += method_message + " "
