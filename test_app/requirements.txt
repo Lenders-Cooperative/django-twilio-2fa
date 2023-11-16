@@ -1,6 +1,6 @@
 certifi==2021.10.8
 charset-normalizer==2.0.12
-Django==2.2.9
+Django==2.2.28
 django-environ==0.8.1
 # Editable install with no version control (django-twilio-2fa==0.1)
 #-e <path to django-twilio-2fa root directory> # /Users/username/Repos/django-twilio-2fa
