@@ -7,7 +7,7 @@ django-environ==0.8.1
 django-widget-tweaks==1.4.12
 idna==3.3
 phonenumbers==8.12.47
-PyJWT==2.3.0
+PyJWT==2.4.0
 pytz==2022.1
 requests==2.27.1
 sqlparse==0.4.2
